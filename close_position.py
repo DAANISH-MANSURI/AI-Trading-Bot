@@ -1,5 +1,5 @@
 import MetaTrader5 as mt5
-from config import SYMBOL, MAGIC_NUMBER, DEVIATION
+from config import SYMBOL, MAGIC_NUMBER, DEVIATION, FILLING_MODE
 
 
 def close_position():
@@ -8,15 +8,19 @@ def close_position():
 
     if positions is None:
         print("❌ No Position Found")
-        return
+        return None
 
     if len(positions) == 0:
         print("ℹ️ No Open Position")
-        return
+        return None
 
     position = positions[0]
 
     tick = mt5.symbol_info_tick(SYMBOL)
+
+    if tick is None:
+        print("❌ Tick Data Not Available")
+        return None
 
     if position.type == mt5.POSITION_TYPE_BUY:
 
@@ -40,9 +44,20 @@ def close_position():
         "magic": MAGIC_NUMBER,
         "comment": "AI Bot Close",
         "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_FOK
+        "type_filling": FILLING_MODE
+
     }
 
     result = mt5.order_send(request)
+
+    if result is None:
+        print("❌ Close Order Failed")
+        return None
+
+    if result.retcode == mt5.TRADE_RETCODE_DONE:
+        print("✅ Position Closed Successfully")
+    else:
+        print(f"❌ Close Failed : {result.retcode}")
+        print(result.comment)
 
     return result

@@ -1,7 +1,7 @@
 import time
 import MetaTrader5 as mt5
 
-from config import SYMBOL, RISK_PERCENT
+from config import SYMBOL, RISK_PERCENT, AUTO_TRADING
 from market_data import get_market_data
 from indicators import add_indicators
 from strategy import get_signal
@@ -16,6 +16,7 @@ from trade_filter import allow_buy, allow_sell
 from spread_filter import spread_ok, get_spread
 from session_filter import trading_session, current_session
 from break_even import move_to_break_even
+from trailing_stop import trailing_stop
 
 from candle_patterns import (
     bullish_engulfing,
@@ -89,6 +90,7 @@ try:
 
             # Last Candle
             last = df.iloc[-1]
+            atr = last["ATR"]
 
             # Position Check
             open_position = has_open_position(SYMBOL)
@@ -183,66 +185,88 @@ try:
 
             # =====================================
             # AUTOMATIC TRADING
-            # (CURRENTLY DISABLED)
             # =====================================
+            if AUTO_TRADING:
 
-            # BUY
-            # if (
-            #     signal["signal"] == "BUY"
-            #     and buy_allowed
-            #     and not open_position
-            # ):
-            #
-            #     result = buy(sl, tp)
-            #
-            #     print(result)
-            #
-            #     log_trade(
-            #         SYMBOL,
-            #         signal["trend"],
-            #         "BUY EXECUTED",
-            #         last["close"],
-            #         sl,
-            #         tp,
-            #         lot,
-            #         "Trade Executed"
-            #     )
+                # BUY
+                if (
+                    signal["signal"] == "BUY"
+                    and buy_allowed
+                    and spread_allowed
+                    and session_allowed
+                    and not open_position
+                    and lot > 0
+                    and sl is not None
+                    and tp is not None
+                ):
 
-            # SELL
-            # elif (
-            #     signal["signal"] == "SELL"
-            #     and sell_allowed
-            #     and not open_position
-            # ):
-            #
-            #     result = sell(sl, tp)
-            #
-            #     print(result)
-            #
-            #     log_trade(
-            #         SYMBOL,
-            #         signal["trend"],
-            #         "SELL EXECUTED",
-            #         last["close"],
-            #         sl,
-            #         tp,
-            #         lot,
-            #         "Trade Executed"
-            #     )
+                    print("\n🟢 BUY Conditions Matched")
 
-        else:
+                    result = buy(lot, sl, tp)
 
-            print("Waiting for next candle...", end="\r")
+                    print(result)
+
+                    log_trade(
+                        SYMBOL,
+                        signal["trend"],
+                        "BUY EXECUTED",
+                        last["close"],
+                        sl,
+                        tp,
+                        lot,
+                        "Trade Executed"
+                  )
+
+                # SELL
+                elif (
+                    signal["signal"] == "SELL"
+                    and sell_allowed
+                    and spread_allowed
+                    and session_allowed
+                    and not open_position
+                    and lot > 0
+                    and sl is not None
+                    and tp is not None
+                ):
+
+                    print("\n🔴 SELL Conditions Matched")
+
+                    result = sell(lot, sl, tp)
+
+                    print(result)
+
+                    log_trade(
+                        SYMBOL,
+                        signal["trend"],
+                        "SELL EXECUTED",
+                        last["close"],
+                        sl,
+                        tp,
+                        lot,
+                        "Trade Executed"
+                )
+
+            else:
+
+              print("⚪ Auto Trading Disabled")
 
         # =====================================
-        # BREAK EVEN CHECK
+        # BREAK EVEN & TRAILING STOP
         # =====================================
 
-        be_result = move_to_break_even()
+        if open_position:
 
-        if be_result is not None:
-            print("\n🟢 Break Even Activated")
-            print(be_result)
+            be_result = move_to_break_even()
+
+            if be_result is not None:
+                print("\n🟢 Break Even Activated")
+                print(be_result)
+
+            ts_result = trailing_stop(atr)
+
+            if ts_result is not None:
+                print("\n🔵 Trailing Stop Updated")
+                print(ts_result)
 
         time.sleep(1)
 
