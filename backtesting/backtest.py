@@ -26,6 +26,8 @@ from backtesting.account_simulator import AccountSimulator
 from backtesting.position_sizer import calculate_position_size
 from backtesting.trade_analytics import analyze_trades
 from backtesting.equity_curve import generate_equity_curve
+from backtesting.report_generator import generate_html_report
+from backtesting.drawdown import calculate_drawdown
 
 
 # ==========================================================
@@ -219,6 +221,7 @@ def main():
         # ---------------------------------------
 
         analytics = analyze_trades(trades_df)
+        drawdown = calculate_drawdown(trades_df)
 
         print()
 
@@ -273,14 +276,23 @@ def main():
             index=False
         )
 
-        print()
+        generate_equity_curve(trades_df)
+
+        generate_html_report(
+            stats,
+            analytics,
+            drawdown,
+            trades_df
+        )
+
         print("✅ Report Saved")
         print("reports/backtest_results.csv")
 
-        generate_equity_curve(trades_df)
-
         print("✅ Equity Curve Saved")
         print("reports/equity_curve.png")
+
+        print("✅ HTML Report Saved")
+        print("reports/backtest_report.html")
 
     finally:
 
