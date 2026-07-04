@@ -6,7 +6,6 @@ from market_data import get_market_data
 from indicators import add_indicators
 from strategy import get_signal
 from risk_manager import calculate_risk
-from position_manager import has_open_position
 from stop_loss import calculate_sl_tp
 from candle_watcher import is_new_candle
 from trade_executor import buy, sell
@@ -17,6 +16,13 @@ from spread_filter import spread_ok, get_spread
 from session_filter import trading_session, current_session
 from break_even import move_to_break_even
 from trailing_stop import trailing_stop
+from close_position import close_position
+from position_manager import (
+    has_open_position,
+    get_position_type,
+    wait_until_position_closed
+)
+
 
 from candle_patterns import (
     bullish_engulfing,
@@ -94,6 +100,7 @@ try:
 
             # Position Check
             open_position = has_open_position(SYMBOL)
+            position_type = get_position_type()
 
             # Stop Loss & Take Profit
             sl, tp = calculate_sl_tp(df, signal["signal"])
@@ -152,6 +159,7 @@ try:
             print(f"Session OK     : {session_allowed}")
             print(f"Reason         : {signal['reason']}")
             print(f"Open Position  : {open_position}")
+            print(f"Position Type  : {position_type}")
 
             print(f"Stop Loss      : {sl}")
             print(f"Take Profit    : {tp}")
@@ -194,57 +202,116 @@ try:
                     and buy_allowed
                     and spread_allowed
                     and session_allowed
-                    and not open_position
                     and lot > 0
                     and sl is not None
                     and tp is not None
                 ):
 
-                    print("\n🟢 BUY Conditions Matched")
+                    # Already BUY
+                    if position_type == "BUY":
 
-                    result = buy(lot, sl, tp)
+                        print("🟡 BUY Position Already Open")
+                        print("Skipping Trade...")
 
-                    print(result)
+                    else:
 
-                    log_trade(
-                        SYMBOL,
-                        signal["trend"],
-                        "BUY EXECUTED",
-                        last["close"],
-                        sl,
-                        tp,
-                        lot,
-                        "Trade Executed"
-                  )
+                        # SELL Position Open
+                        if position_type == "SELL":
 
+                            print("🔄 Closing SELL Position...")
+
+                            close_result = close_position()
+
+                            print(close_result)
+
+                            closed = wait_until_position_closed()
+
+                        if not closed:
+
+                            print("❌ Position Close Timeout")
+
+                        else:
+
+                            print("✅ Position Closed Successfully")
+
+                        print("🟢 Opening BUY Position...")
+
+                        result = buy(
+                            lot,
+                            sl,
+                            tp
+                        )
+
+                        print(result)
+
+                        log_trade(
+                            SYMBOL,
+                            signal["trend"],
+                            "BUY EXECUTED",
+                            last["close"],
+                            sl,
+                            tp,
+                            lot,
+                            "BUY Executed"
+                        )
                 # SELL
                 elif (
                     signal["signal"] == "SELL"
                     and sell_allowed
                     and spread_allowed
                     and session_allowed
-                    and not open_position
                     and lot > 0
                     and sl is not None
                     and tp is not None
                 ):
 
-                    print("\n🔴 SELL Conditions Matched")
+                    # Already SELL
+                    if position_type == "SELL":
 
-                    result = sell(lot, sl, tp)
+                        print("🟡 SELL Position Already Open")
+                        print("Skipping Trade...")
 
-                    print(result)
+                    else:
 
-                    log_trade(
-                        SYMBOL,
-                        signal["trend"],
-                        "SELL EXECUTED",
-                        last["close"],
-                        sl,
-                        tp,
-                        lot,
-                        "Trade Executed"
-                )
+                        # BUY Position Open
+                        if position_type == "BUY":
+
+                            print("🔄 Closing BUY Position...")
+
+                            close_result = close_position()
+
+                            print(close_result)
+
+                            closed = wait_until_position_closed()
+
+                            if not closed:
+
+                                print("❌ Position Close Timeout")
+
+                            else:
+
+                                print("✅ Position Closed Successfully")
+
+                        print("🔴 Opening SELL Position...")
+
+                        result = sell(
+                            lot,
+                            sl,
+                            tp
+                        )
+
+                        print(result)
+
+                        log_trade(
+                            SYMBOL,
+                            signal["trend"],
+                            "SELL EXECUTED",
+                            last["close"],
+                            sl,
+                            tp,
+                            lot,
+                            "SELL Executed"
+                        )
 
             else:
 
