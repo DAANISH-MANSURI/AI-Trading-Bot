@@ -25,6 +25,7 @@ from backtesting.performance import calculate_performance
 from backtesting.account_simulator import AccountSimulator
 from backtesting.position_sizer import calculate_position_size
 from backtesting.trade_analytics import analyze_trades
+from backtesting.equity_curve import generate_equity_curve
 
 
 # ==========================================================
@@ -275,6 +276,11 @@ def main():
         print()
         print("✅ Report Saved")
         print("reports/backtest_results.csv")
+
+        generate_equity_curve(trades_df)
+
+        print("✅ Equity Curve Saved")
+        print("reports/equity_curve.png")
 
     finally:
 

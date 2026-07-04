@@ -18,3 +18,8 @@ trade_log.csv
 
 # MT5
 .mt5/
+
+reports/
+__pycache__/
+*.pyc
+.env
