@@ -1,5 +1,12 @@
 import MetaTrader5 as mt5
+
 from config import SYMBOL, MAX_SPREAD
+
+from broker_manager import (
+    get_symbol_info,
+    get_point
+)
+
 
 def spread_ok():
 
@@ -8,12 +15,9 @@ def spread_ok():
     if tick is None:
         return False
 
-    symbol = mt5.symbol_info(SYMBOL)
+    point = get_point()
 
-    if symbol is None:
-        return False
-
-    spread = (tick.ask - tick.bid) / symbol.point
+    spread = (tick.ask - tick.bid) / point
 
     return spread <= MAX_SPREAD
 
@@ -22,11 +26,11 @@ def get_spread():
 
     tick = mt5.symbol_info_tick(SYMBOL)
 
-    symbol = mt5.symbol_info(SYMBOL)
-
-    if tick is None or symbol is None:
+    if tick is None:
         return 0
 
-    spread = (tick.ask - tick.bid) / symbol.point
+    point = get_point()
+
+    spread = (tick.ask - tick.bid) / point
 
     return round(spread, 1)

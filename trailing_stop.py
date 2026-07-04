@@ -7,15 +7,18 @@ from config import (
     TRAILING_START_ATR
 )
 
+from broker_manager import (
+    get_digits,
+    get_point,
+    get_filling_mode
+)
+
 
 def trailing_stop(atr):
 
     positions = mt5.positions_get(symbol=SYMBOL)
 
-    if positions is None:
-        return
-
-    if len(positions) == 0:
+    if positions is None or len(positions) == 0:
         return
 
     position = positions[0]
@@ -25,54 +28,66 @@ def trailing_stop(atr):
     if tick is None:
         return
 
-    # BUY Position
+    point = get_point()
+    digits = get_digits()
+
+    # ============================
+    # BUY POSITION
+    # ============================
+
     if position.type == mt5.POSITION_TYPE_BUY:
 
         current_price = tick.bid
 
         profit = current_price - position.price_open
 
-        if profit >= atr * TRAILING_START_ATR:
+        if profit < atr * TRAILING_START_ATR:
+            return
 
-            new_sl = current_price - atr * TRAILING_ATR_MULTIPLIER
+        new_sl = current_price - atr * TRAILING_ATR_MULTIPLIER
 
-            if new_sl > position.sl:
+        # Already Trailing
+        if abs(position.sl - new_sl) < point:
+            return
 
-                request = {
+        if new_sl <= position.sl:
+            return
 
-                    "action": mt5.TRADE_ACTION_SLTP,
-                    "position": position.ticket,
-                    "symbol": SYMBOL,
-                    "sl": round(new_sl, 5),
-                    "tp": position.tp,
-                    "magic": MAGIC_NUMBER
+    # ============================
+    # SELL POSITION
+    # ============================
 
-                }
-
-                return mt5.order_send(request)
-
-    # SELL Position
     else:
 
         current_price = tick.ask
 
         profit = position.price_open - current_price
 
-        if profit >= atr * TRAILING_START_ATR:
+        if profit < atr * TRAILING_START_ATR:
+            return
 
-            new_sl = current_price + atr * TRAILING_ATR_MULTIPLIER
+        new_sl = current_price + atr * TRAILING_ATR_MULTIPLIER
 
-            if position.sl == 0 or new_sl < position.sl:
+        if position.sl != 0:
 
-                request = {
+            if abs(position.sl - new_sl) < point:
+                return
 
-                    "action": mt5.TRADE_ACTION_SLTP,
-                    "position": position.ticket,
-                    "symbol": SYMBOL,
-                    "sl": round(new_sl, 5),
-                    "tp": position.tp,
-                    "magic": MAGIC_NUMBER
+            if new_sl >= position.sl:
+                return
 
-                }
+    request = {
 
-                return mt5.order_send(request)
+        "action": mt5.TRADE_ACTION_SLTP,
+        "position": position.ticket,
+        "symbol": SYMBOL,
+        "sl": round(new_sl, digits),
+        "tp": position.tp,
+        "magic": MAGIC_NUMBER,
+        "type_filling": get_filling_mode()
+
+    }
+
+    result = mt5.order_send(request)
+
+    return result

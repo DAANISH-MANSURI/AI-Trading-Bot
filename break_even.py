@@ -3,8 +3,12 @@ import MetaTrader5 as mt5
 from config import (
     SYMBOL,
     MAGIC_NUMBER,
-    BREAK_EVEN_TRIGGER,
-    DEVIATION
+    BREAK_EVEN_TRIGGER
+)
+
+from broker_manager import (
+    get_point,
+    get_filling_mode
 )
 
 
@@ -12,10 +16,7 @@ def move_to_break_even():
 
     positions = mt5.positions_get(symbol=SYMBOL)
 
-    if positions is None:
-        return
-
-    if len(positions) == 0:
+    if positions is None or len(positions) == 0:
         return
 
     position = positions[0]
@@ -25,54 +26,45 @@ def move_to_break_even():
     if tick is None:
         return
 
-    # BUY Position
+    point = get_point()
+
+    trigger = BREAK_EVEN_TRIGGER * point
+
+    # BUY
     if position.type == mt5.POSITION_TYPE_BUY:
 
         current_price = tick.bid
 
-        profit_points = (
-            current_price - position.price_open
-        )
+        profit = current_price - position.price_open
 
-        if profit_points >= BREAK_EVEN_TRIGGER:
-
-            request = {
-
-                "action": mt5.TRADE_ACTION_SLTP,
-                "position": position.ticket,
-                "symbol": SYMBOL,
-                "sl": position.price_open,
-                "tp": position.tp,
-                "magic": MAGIC_NUMBER
-
-            }
-
-            result = mt5.order_send(request)
-
-            return result
-
-    # SELL Position
+    # SELL
     else:
 
         current_price = tick.ask
 
-        profit_points = (
-            position.price_open - current_price
-        )
+        profit = position.price_open - current_price
 
-        if profit_points >= 0.0010:
+    if profit < trigger:
+        return
 
-            request = {
+    request = {
 
-                "action": mt5.TRADE_ACTION_SLTP,
-                "position": position.ticket,
-                "symbol": SYMBOL,
-                "sl": position.price_open,
-                "tp": position.tp,
-                "magic": MAGIC_NUMBER
+        "action": mt5.TRADE_ACTION_SLTP,
 
-            }
+        "position": position.ticket,
 
-            result = mt5.order_send(request)
+        "symbol": SYMBOL,
 
-            return result
+        "sl": position.price_open,
+
+        "tp": position.tp,
+
+        "magic": MAGIC_NUMBER,
+
+        "type_filling": get_filling_mode()
+
+    }
+
+    result = mt5.order_send(request)
+
+    return result

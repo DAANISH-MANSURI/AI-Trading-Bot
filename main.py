@@ -8,7 +8,6 @@ from strategy import get_signal
 from risk_manager import calculate_risk
 from stop_loss import calculate_sl_tp
 from candle_watcher import is_new_candle
-from trade_executor import buy, sell
 from trade_logger import log_trade
 from lot_size import calculate_lot
 from trade_filter import allow_buy, allow_sell
@@ -16,11 +15,15 @@ from spread_filter import spread_ok, get_spread
 from session_filter import trading_session, current_session
 from break_even import move_to_break_even
 from trailing_stop import trailing_stop
-from close_position import close_position
 from position_manager import (
     has_open_position,
     get_position_type,
     wait_until_position_closed
+)
+from execution_manager import (
+    execute_buy,
+    execute_sell,
+    execute_close
 )
 
 
@@ -127,6 +130,14 @@ try:
                     last["close"],
                     sl
                 )
+            # =========================
+            # TEST MODE
+            # =========================
+            if (
+                AUTO_TRADING
+                and signal["signal"] in ["BUY", "SELL"]
+                ):
+                lot = 0.01
 
             # =====================================
             # PRINT BOT STATUS
@@ -215,12 +226,14 @@ try:
 
                     else:
 
-                        # SELL Position Open
+                        # Assume no close needed
+                        closed = True
+
                         if position_type == "SELL":
 
                             print("🔄 Closing SELL Position...")
 
-                            close_result = close_position()
+                            close_result = execute_close()
 
                             print(close_result)
 
@@ -232,14 +245,15 @@ try:
 
                         else:
 
-                            print("✅ Position Closed Successfully")
+                            if position_type == "SELL":
+                                print("✅ Position Closed Successfully")
 
-                        print("🟢 Opening BUY Position...")
+                            print("🟢 Opening BUY Position...")
 
-                        result = buy(
-                            lot,
-                            sl,
-                            tp
+                            result = execute_buy(
+                                lot,
+                                sl,
+                                tp
                         )
 
                         print(result)
@@ -273,12 +287,14 @@ try:
 
                     else:
 
-                        # BUY Position Open
+                        # Assume no close needed
+                        closed = True
+
                         if position_type == "BUY":
 
                             print("🔄 Closing BUY Position...")
 
-                            close_result = close_position()
+                            close_result = execute_close()
 
                             print(close_result)
 
@@ -290,28 +306,29 @@ try:
 
                             else:
 
-                                print("✅ Position Closed Successfully")
+                                if position_type == "BUY":
+                                    print("✅ Position Closed Successfully")
 
-                        print("🔴 Opening SELL Position...")
+                                print("🔴 Opening SELL Position...")
 
-                        result = sell(
-                            lot,
-                            sl,
-                            tp
-                        )
+                                result = execute_sell(
+                                    lot,
+                                    sl,
+                                    tp
+                                )
 
-                        print(result)
+                                print(result)
 
-                        log_trade(
-                            SYMBOL,
-                            signal["trend"],
-                            "SELL EXECUTED",
-                            last["close"],
-                            sl,
-                            tp,
-                            lot,
-                            "SELL Executed"
-                        )
+                                log_trade(
+                                    SYMBOL,
+                                    signal["trend"],
+                                    "SELL EXECUTED",
+                                    last["close"],
+                                    sl,
+                                    tp,
+                                    lot,
+                                    "SELL Executed"
+                            )
 
             else:
 

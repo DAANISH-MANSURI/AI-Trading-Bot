@@ -1,5 +1,12 @@
 import MetaTrader5 as mt5
-from config import SYMBOL, MAGIC_NUMBER, DEVIATION, FILLING_MODE
+
+from config import (
+    SYMBOL,
+    MAGIC_NUMBER,
+    DEVIATION
+)
+
+from broker_manager import get_filling_mode
 
 
 def close_position():
@@ -44,7 +51,7 @@ def close_position():
         "magic": MAGIC_NUMBER,
         "comment": "AI Bot Close",
         "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": FILLING_MODE
+        "type_filling": get_filling_mode()
 
     }
 
