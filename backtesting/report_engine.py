@@ -79,7 +79,7 @@ def save_reports(
     # HTML Report
     # ==========================================
 
-    generate_html_report(
+    html_path = generate_html_report(
 
         performance,
 
@@ -107,12 +107,6 @@ def save_reports(
 
         ),
 
-        "html": os.path.join(
-
-            reports_dir,
-
-            "backtest_report.html"
-
-        )
+        "html": html_path
 
     }

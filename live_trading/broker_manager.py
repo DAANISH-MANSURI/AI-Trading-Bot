@@ -2,7 +2,6 @@ import MetaTrader5 as mt5
 
 from config import SYMBOL
 
-
 def get_symbol_info():
 
     symbol = mt5.symbol_info(SYMBOL)
@@ -12,16 +11,6 @@ def get_symbol_info():
         raise Exception(f"{SYMBOL} Not Found")
 
     return symbol
-
-
-def get_point():
-
-    return get_symbol_info().point
-
-
-def get_digits():
-
-    return get_symbol_info().digits
 
 
 def get_spread():
@@ -42,11 +31,6 @@ def get_max_lot():
 def get_lot_step():
 
     return get_symbol_info().volume_step
-
-
-def get_stop_level():
-
-    return get_symbol_info().trade_stops_level
 
 
 def get_freeze_level():

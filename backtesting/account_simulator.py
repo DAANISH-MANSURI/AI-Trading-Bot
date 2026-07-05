@@ -58,9 +58,15 @@ class AccountSimulator:
         # LOSS
         # --------------------------------------
 
-        else:
+        elif trade.is_loss():
 
             profit = -risk_amount
+
+        else:
+
+            raise ValueError(
+                f"Unknown Trade Result : {trade.result}"
+            )
 
         self.balance += profit
 

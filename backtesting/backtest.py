@@ -1,3 +1,14 @@
+from core.exceptions import (
+    BacktestError,
+    MT5ConnectionError
+)
+
+from config.backtesting import (
+    DEFAULT_BALANCE,
+    DEFAULT_RISK
+)
+
+from utils.logger import logger
 import os
 import sys
 import MetaTrader5 as mt5
@@ -15,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import SYMBOL, TIMEFRAME
 
 from backtesting.historical_data import get_historical_data
-from indicators import add_indicators
+from strategy.indicators import add_indicators
 
 from backtesting.account_simulator import AccountSimulator
 from backtesting.trade_engine import execute_trade_loop
@@ -31,13 +42,16 @@ def main():
 
     print("=" * 70)
     print("AI Trading Bot - Backtesting Engine")
+    logger.info("Backtesting Started")
     print("=" * 70)
 
     if not mt5.initialize():
 
-        print("❌ MT5 Connection Failed")
-        print(mt5.last_error())
-        return
+        raise MT5ConnectionError(
+
+        str(mt5.last_error())
+
+    )
 
     try:
 
@@ -47,9 +61,9 @@ def main():
 
         account = AccountSimulator(
 
-            starting_balance=10000,
+            starting_balance=DEFAULT_BALANCE,
 
-            risk_percent=1
+            risk_percent=DEFAULT_RISK
 
         )
 
@@ -74,6 +88,7 @@ def main():
             return
 
         print(f"✅ Loaded {len(df)} Candles")
+        logger.info(f"Loaded {len(df)} Candles")
 
         # ==========================================
         # Indicators
@@ -82,6 +97,7 @@ def main():
         df = add_indicators(df)
 
         print("✅ Indicators Calculated")
+        logger.info("Indicators Calculated")
 
         # ==========================================
         # Execute Trade Engine
@@ -95,7 +111,7 @@ def main():
 
             account=account,
 
-            risk_percent=1
+            risk_percent=DEFAULT_RISK
 
         )
 
@@ -109,7 +125,10 @@ def main():
         # Statistics
         # ==========================================
 
-        statistics = calculate_statistics(trades_df)
+        statistics = calculate_statistics(
+            trades_df,
+            account.starting_balance
+            )
 
         performance = statistics["performance"]
 
@@ -189,19 +208,40 @@ def main():
         )
 
         print()
+        print("✅ Reports Generated")
+        print(f"CSV          : {report_files['csv']}")
+        print(f"Equity Curve : {report_files['equity_curve']}")
+        print(f"HTML Report  : {report_files['html']}")
 
-        print("✅ Report Saved")
-        print(report_files["csv"])
+    except BacktestError as e:
+
+        logger.error(str(e))
 
         print()
 
-        print("✅ Equity Curve Saved")
-        print(report_files["equity_curve"])
+        print("❌ BACKTEST ERROR")
+
+        print(e)
+
+    except MT5ConnectionError as e:
+
+        logger.error(str(e))
 
         print()
 
-        print("✅ HTML Report Saved")
-        print(report_files["html"])
+        print("❌ MT5 ERROR")
+
+        print(e)
+
+    except Exception as e:
+
+        logger.exception(e)
+
+        print()
+
+        print("❌ UNKNOWN ERROR")
+
+        print(e)
 
     finally:
 
@@ -210,6 +250,7 @@ def main():
         print()
 
         print("✅ MT5 Connection Closed")
+        logger.info("Backtesting Finished")
 
 
 # ==========================================================

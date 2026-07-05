@@ -1,4 +1,6 @@
-from broker_manager import (
+from core.enums import Signal
+
+from mt5.symbol_info import (
     get_stop_level,
     get_point,
     get_digits
@@ -23,13 +25,13 @@ def calculate_sl_tp(df, signal):
         broker_distance
     )
 
-    if signal == "BUY":
+    if signal == Signal.BUY:
 
         sl = last["close"] - stop_distance
 
         tp = last["close"] + (stop_distance * 2)
 
-    elif signal == "SELL":
+    elif signal == Signal.SELL:
 
         sl = last["close"] + stop_distance
 

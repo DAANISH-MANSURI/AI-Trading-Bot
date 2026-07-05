@@ -1,11 +1,12 @@
 import pandas as pd
 from backtesting.models import TradeResult
 
-from strategy import get_signal
-from stop_loss import calculate_sl_tp
+from strategy.strategy import get_signal
+from strategy.stop_loss import calculate_sl_tp
 
 from backtesting.trade_simulator import simulate_trade
 from backtesting.position_sizer import calculate_position_size
+from core.enums import Signal
 
 
 def execute_trade_loop(
@@ -70,7 +71,7 @@ def execute_trade_loop(
 
         signal = get_signal(history)
 
-        if signal["signal"] == "NO_TRADE":
+        if signal["signal"] == Signal.NO_TRADE:
 
             continue
 

@@ -1,4 +1,7 @@
-def calculate_performance(trades_df):
+def calculate_performance(
+        trades_df,
+        starting_balance
+):
 
     if trades_df.empty:
 
@@ -34,7 +37,6 @@ def calculate_performance(trades_df):
     # Balance
     # ==========================================
 
-    starting_balance = 10000
 
     final_balance = trades_df.iloc[-1]["balance"]
 
@@ -60,13 +62,11 @@ def calculate_performance(trades_df):
 
     if gross_loss == 0:
 
-        profit_factor = 0
+        profit_factor = float("inf")
 
     else:
 
-        profit_factor = (
-            gross_profit / gross_loss
-        )
+        profit_factor = gross_profit / gross_loss
 
     average_profit = trades_df[
         "profit"

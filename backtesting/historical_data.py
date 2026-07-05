@@ -1,3 +1,4 @@
+from core.exceptions import BacktestError
 import MetaTrader5 as mt5
 import pandas as pd
 
@@ -16,7 +17,11 @@ def get_historical_data(
     )
 
     if rates is None:
-        return None
+        raise BacktestError(
+
+        f"Failed to load historical data for {symbol}"
+
+    )
 
     df = pd.DataFrame(rates)
 

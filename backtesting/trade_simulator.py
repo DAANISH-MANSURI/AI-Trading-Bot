@@ -1,4 +1,5 @@
 from backtesting.models import TradeResult
+from core.enums import Signal, TradeStatus, ExitReason
 
 
 def simulate_trade(df, entry_index, signal, sl, tp):
@@ -39,7 +40,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
         # BUY
         # =====================================
 
-        if signal == "BUY":
+        if signal == Signal.BUY:
 
             # -----------------------------
             # Stop Loss
@@ -49,9 +50,9 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 return TradeResult(
 
-                    signal=signal,
+                    signal=signal.value,
 
-                    result="LOSS",
+                    result=TradeStatus.LOSS.value,
 
                     entry_time=entry_time,
 
@@ -77,7 +78,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                     trade_duration=duration,
 
-                    exit_reason="SL",
+                    exit_reason=ExitReason.SL.value,
 
                     exit_index=i
 
@@ -91,9 +92,9 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 return TradeResult(
 
-                    signal=signal,
+                    signal=signal.value,
 
-                    result="WIN",
+                    result=TradeStatus.WIN.value,
 
                     entry_time=entry_time,
 
@@ -119,7 +120,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                     trade_duration=duration,
 
-                    exit_reason="TP",
+                    exit_reason=ExitReason.TP.value,
 
                     exit_index=i
 
@@ -129,7 +130,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
         # SELL
         # =====================================
 
-        elif signal == "SELL":
+        elif signal == Signal.SELL:
 
             # -----------------------------
             # Stop Loss
@@ -139,9 +140,9 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 return TradeResult(
 
-                    signal=signal,
+                    signal=signal.value,
 
-                    result="LOSS",
+                    result=TradeStatus.LOSS.value,
 
                     entry_time=entry_time,
 
@@ -167,7 +168,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                     trade_duration=duration,
 
-                    exit_reason="SL",
+                    exit_reason=ExitReason.SL.value,
 
                     exit_index=i
 
@@ -181,9 +182,9 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 return TradeResult(
 
-                    signal=signal,
+                    signal=signal.value,
 
-                    result="WIN",
+                    result=TradeStatus.WIN.value,
 
                     entry_time=entry_time,
 
@@ -209,7 +210,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                     trade_duration=duration,
 
-                    exit_reason="TP",
+                    exit_reason=ExitReason.TP.value,
 
                     exit_index=i
 

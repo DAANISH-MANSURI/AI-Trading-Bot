@@ -167,7 +167,4 @@ def generate_html_report(
         html,
         encoding="utf-8"
     )
-
-    print()
-    print("✅ HTML Report Generated")
-    print(report_file)
+    return str(report_file)
