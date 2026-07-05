@@ -26,38 +26,60 @@ class AccountSimulator:
 
     def get_risk_amount(self):
 
-        return self.balance * (self.risk_percent / 100)
+        return round(
+
+            self.balance * (self.risk_percent / 100),
+
+            2
+
+        )
 
     # ==========================================
-    # Apply Trade Result
+    # Process TradeResult Object
     # ==========================================
 
     def process_trade(self, trade):
 
+        """
+        trade = TradeResult Object
+        """
+
         risk_amount = self.get_risk_amount()
 
+        # --------------------------------------
         # WIN
-        if trade["result"] == "WIN":
+        # --------------------------------------
 
-            profit = risk_amount * trade["rr"]
+        if trade.is_win():
 
+            profit = risk_amount * trade.rr
+
+        # --------------------------------------
         # LOSS
+        # --------------------------------------
+
         else:
 
             profit = -risk_amount
 
         self.balance += profit
 
-        record = {
+        self.balance = round(self.balance, 2)
 
-            "balance": round(self.balance, 2),
+        # --------------------------------------
+        # Update Trade Object
+        # --------------------------------------
 
-            "profit": round(profit, 2),
+        trade.profit = round(profit, 2)
 
-            "risk_amount": round(risk_amount, 2)
+        trade.balance = self.balance
 
-        }
+        trade.risk_amount = risk_amount
 
-        self.trade_history.append(record)
+        # --------------------------------------
+        # Save History
+        # --------------------------------------
 
-        return record
+        self.trade_history.append(trade)
+
+        return trade

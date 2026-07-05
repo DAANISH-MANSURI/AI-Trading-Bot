@@ -1,7 +1,6 @@
 import os
 import sys
 import MetaTrader5 as mt5
-import pandas as pd
 
 # ==========================================================
 # Parent Folder
@@ -17,17 +16,11 @@ from config import SYMBOL, TIMEFRAME
 
 from backtesting.historical_data import get_historical_data
 from indicators import add_indicators
-from strategy import get_signal
-from stop_loss import calculate_sl_tp
 
-from backtesting.trade_simulator import simulate_trade
-from backtesting.performance import calculate_performance
 from backtesting.account_simulator import AccountSimulator
-from backtesting.position_sizer import calculate_position_size
-from backtesting.trade_analytics import analyze_trades
-from backtesting.equity_curve import generate_equity_curve
-from backtesting.report_generator import generate_html_report
-from backtesting.drawdown import calculate_drawdown
+from backtesting.trade_engine import execute_trade_loop
+from backtesting.statistics_engine import calculate_statistics
+from backtesting.report_engine import save_reports
 
 
 # ==========================================================
@@ -40,163 +33,96 @@ def main():
     print("AI Trading Bot - Backtesting Engine")
     print("=" * 70)
 
-    # ---------------------------------------
-    # MT5 Connection
-    # ---------------------------------------
-
     if not mt5.initialize():
 
         print("❌ MT5 Connection Failed")
         print(mt5.last_error())
         return
 
-    account = AccountSimulator(
-        starting_balance=10000,
-        risk_percent=1
-    )
-
     try:
 
-        # ---------------------------------------
-        # Load Historical Data
-        # ---------------------------------------
+        # ==========================================
+        # Account
+        # ==========================================
+
+        account = AccountSimulator(
+
+            starting_balance=10000,
+
+            risk_percent=1
+
+        )
+
+        # ==========================================
+        # Historical Data
+        # ==========================================
 
         df = get_historical_data(
+
             symbol=SYMBOL,
+
             timeframe=TIMEFRAME,
+
             candles=5000
+
         )
 
         if df is None:
 
             print("❌ Failed To Load Historical Data")
+
             return
 
         print(f"✅ Loaded {len(df)} Candles")
 
-        # ---------------------------------------
+        # ==========================================
         # Indicators
-        # ---------------------------------------
+        # ==========================================
 
         df = add_indicators(df)
 
         print("✅ Indicators Calculated")
 
-        # ---------------------------------------
-        # Trade List
-        # ---------------------------------------
+        # ==========================================
+        # Execute Trade Engine
+        # ==========================================
 
-        trades = []
+        trades_df = execute_trade_loop(
 
-        # ======================================
-        # Single Position Engine
-        # ======================================
+            df=df,
 
-        next_available_index = 200
+            symbol=SYMBOL,
 
-        for i in range(200, len(df) - 1):
+            account=account,
 
-            # Wait until previous trade is closed
-            if i < next_available_index:
-                continue
+            risk_percent=1
 
-            history = df.iloc[: i + 1].copy()
+        )
 
-            signal = get_signal(history)
+        if trades_df.empty:
 
-            if signal["signal"] == "NO_TRADE":
-                continue
+            print("⚠️ No Trades Found")
 
-            # ---------------------------------------
-            # Stop Loss / Take Profit
-            # ---------------------------------------
+            return
 
-            sl, tp = calculate_sl_tp(
-                history,
-                signal["signal"]
-            )
+        # ==========================================
+        # Statistics
+        # ==========================================
 
-            if sl is None:
-                continue
+        statistics = calculate_statistics(trades_df)
 
-            # ---------------------------------------
-            # Position Size
-            # ---------------------------------------
+        performance = statistics["performance"]
 
-            lot = calculate_position_size(
-                symbol=SYMBOL,
-                balance=account.get_balance(),
-                risk_percent=1,
-                entry_price=history.iloc[-1]["close"],
-                stop_loss=sl
-            )
+        analytics = statistics["analytics"]
 
-            # ---------------------------------------
-            # Trade Simulation
-            # ---------------------------------------
+        drawdown = statistics["drawdown"]
 
-            result = simulate_trade(
-                df,
-                i,
-                signal["signal"],
-                sl,
-                tp
-            )
-
-            if result is None:
-                continue
-
-            # ======================================
-            # Prevent Overlapping Trades
-            # ======================================
-
-            next_available_index = result["exit_index"] + 1
-
-            # ---------------------------------------
-            # Extra Trade Information
-            # ---------------------------------------
-
-            result["sl"] = round(sl, 2)
-            result["tp"] = round(tp, 2)
-            result["lot_size"] = lot
-
-            # ---------------------------------------
-            # Account Update
-            # ---------------------------------------
-
-            account_info = account.process_trade(result)
-
-            result["balance"] = account_info["balance"]
-            result["profit"] = account_info["profit"]
-            result["risk_amount"] = account_info["risk_amount"]
-
-            trades.append(result)
-
-        # ---------------------------------------
-        # DataFrame
-        # ---------------------------------------
-
-        trades_df = pd.DataFrame(trades)
-        print()
-        print("=" * 70)
-        print("SIGNAL SUMMARY")
-        print("=" * 70)
-
-        print(trades_df["signal"].value_counts())
-
-        print("=" * 70)
-
-        # ---------------------------------------
-        # Performance
-        # ---------------------------------------
-
-        stats = calculate_performance(trades_df)
-
-        # ---------------------------------------
-        # Report
-        # ---------------------------------------
+        # ==========================================
+        # Console Report
+        # ==========================================
 
         print()
+
         print("=" * 70)
         print("BACKTEST COMPLETED")
         print("=" * 70)
@@ -211,17 +137,11 @@ def main():
         print("PERFORMANCE REPORT")
         print("=" * 70)
 
-        for key, value in stats.items():
+        for key, value in performance.items():
+
             print(f"{key:<20}: {value}")
 
         print("=" * 70)
-
-        # ---------------------------------------
-        # Trade Analytics
-        # ---------------------------------------
-
-        analytics = analyze_trades(trades_df)
-        drawdown = calculate_drawdown(trades_df)
 
         print()
 
@@ -231,13 +151,9 @@ def main():
 
         for key, value in analytics.items():
 
-          print(f"{key:<25}: {value}")
+            print(f"{key:<25}: {value}")
 
         print("=" * 70)
-
-        # ---------------------------------------
-        # Account Summary
-        # ---------------------------------------
 
         print()
 
@@ -246,59 +162,53 @@ def main():
         print("=" * 70)
 
         print(f"Starting Balance : {account.starting_balance}")
+
         print(f"Final Balance    : {account.get_balance()}")
 
         print("=" * 70)
 
-        # ---------------------------------------
-        # Recent Trades
-        # ---------------------------------------
+        print("LAST 10 TRADES")
+        print("=" * 70)
 
-        if not trades_df.empty:
+        print(trades_df.tail(10))
 
-            print("LAST 10 TRADES")
-            print("=" * 70)
+        # ==========================================
+        # Reports
+        # ==========================================
 
-            print(trades_df.tail(10))
+        report_files = save_reports(
 
-        else:
+            trades_df,
 
-            print("⚠️ No Trades Found")
+            performance,
 
-        # ---------------------------------------
-        # Save CSV
-        # ---------------------------------------
-
-        os.makedirs("reports", exist_ok=True)
-
-        trades_df.to_csv(
-            "reports/backtest_results.csv",
-            index=False
-        )
-
-        generate_equity_curve(trades_df)
-
-        generate_html_report(
-            stats,
             analytics,
-            drawdown,
-            trades_df
+
+            drawdown
+
         )
+
+        print()
 
         print("✅ Report Saved")
-        print("reports/backtest_results.csv")
+        print(report_files["csv"])
+
+        print()
 
         print("✅ Equity Curve Saved")
-        print("reports/equity_curve.png")
+        print(report_files["equity_curve"])
+
+        print()
 
         print("✅ HTML Report Saved")
-        print("reports/backtest_report.html")
+        print(report_files["html"])
 
     finally:
 
         mt5.shutdown()
 
         print()
+
         print("✅ MT5 Connection Closed")
 
 
@@ -307,4 +217,5 @@ def main():
 # ==========================================================
 
 if __name__ == "__main__":
+
     main()

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Trading Bot Dashboard</title>
+
+    <link rel="stylesheet" href="../assets/style.css">
+
+</head>
+
+<div class="info-bar">
+
+    <div>
+
+        <span>📅 Generated</span>
+
+        <strong>{{generated_time}}</strong>
+
+    </div>
+
+    <div>
+
+        <span>📈 Strategy</span>
+
+        <strong>EMA + RSI + ATR</strong>
+
+    </div>
+
+    <div>
+
+        <span>💹 Symbol</span>
+
+        <strong>BTCUSD</strong>
+
+    </div>
+
+    <div>
+
+        <span>⏰ Timeframe</span>
+
+        <strong>M5</strong>
+
+    </div>
+
+</div>
+
+<body>
+
+<div class="container">
+
+    <header class="header">
+
+      <div class="status">
+
+        ✔ Strategy Passed Backtest
+
+      </div>
+
+        <h1>
+
+          AI Trading Bot
+
+        </h1>
+
+        <p class="subtitle">
+
+        Professional Quantitative Trading Dashboard
+
+        </p>
+
+        <span class="version">
+            Version 2.7
+        </span>
+      
+     <div class="button-group">
+
+        <button onclick="window.print()" class="btn">
+            🖨 Print Report
+        </button>
+
+        <button
+            onclick="window.location.href='backtest_results.csv'"
+            class="btn">
+
+            📥 Download CSV
+
+        </button>
+
+      </div>
+      <div class="status-banner">
+
+        🚀 Strategy Successfully Backtested
+
+      </div>
+    </header>
+
+    <!-- KPI Cards -->
+
+    <section class="cards">
+
+        <div class="card balance-card">
+          <div class="card-icon">💰</div>
+          <h3>Final Balance</h3>
+          <h2>{{final_balance}}</h2>
+        </div>
+
+        <div class="card win-card">
+          <div class="card-icon">📈</div>
+          <h3>Win Rate</h3>
+          <h2>{{win_rate}}</h2>
+        </div>
+
+        <div class="card pf-card">
+          <div class="card-icon">🎯</div>
+          <h3>Profit Factor</h3>
+          <h2>{{profit_factor}}</h2>
+        </div>
+
+        <div class="card dd-card">
+          <div class="card-icon">⚠️</div>
+          <h3>Max Drawdown</h3>
+          <h2>{{drawdown}}</h2>
+        </div>
+
+    </section>
+
+    <!-- Performance -->
+
+    <section class="panel">
+
+        <h2>Performance Report</h2>
+
+        <div class="progress-box">
+
+          <div class="label">
+
+            Win Rate
+
+            <span>{{win_rate}}</span>
+
+          </div>
+
+          <div class="progress">
+
+            <div class="progress-fill"></div>
+
+          </div>
+
+        </div>
+
+        {{performance_table}}
+
+    </section>
+
+    <!-- Analytics -->
+
+    <section class="panel">
+
+        <h2>Trade Analytics</h2>
+
+        {{analytics_table}}
+
+    </section>
+
+    <!-- Drawdown -->
+
+    <section class="panel">
+
+        <h2>Drawdown Report</h2>
+
+        {{drawdown_table}}
+
+    </section>
+
+    <!-- Equity -->
+
+    <section class="panel">
+
+        <h2>Equity Curve</h2>
+
+        <img src="equity_curve.png" class="equity">
+
+    </section>
+
+    <!-- Trades -->
+
+    <section class="panel">
+
+        <h2>Last 20 Trades</h2>
+
+        {{recent_trades}}
+
+    </section>
+
+  <footer>
+
+    <div>
+
+    🤖 AI Trading Bot Professional Dashboard
+
+    </div>
+
+    <div>
+
+    Version 2.7
+
+    </div>
+
+    <div>
+
+    Generated :
+
+    {{generated_time}}
+
+    </div>
+
+  </footer>
+
+</div>
+
+</body>
+
+</html>

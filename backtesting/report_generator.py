@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from datetime import datetime
 
 
 def generate_html_report(
@@ -8,143 +10,164 @@ def generate_html_report(
     trades_df
 ):
 
-    os.makedirs("reports", exist_ok=True)
+    # -------------------------------------
+    # Paths
+    # -------------------------------------
 
-    html = f"""
-<!DOCTYPE html>
+    base_path = Path(__file__).parent
 
-<html>
+    template_path = base_path / "templates" / "report_template.html"
 
-<head>
+    css_source = base_path / "assets" / "style.css"
 
-<meta charset="UTF-8">
+    reports_path = Path("reports")
 
-<title>AI Trading Bot Report</title>
+    reports_path.mkdir(exist_ok=True)
 
-<style>
+    css_destination = reports_path / "style.css"
 
-body{{
-font-family:Arial;
-background:#f5f5f5;
-margin:40px;
-}}
-
-h1{{
-color:#222;
-}}
-
-table{{
-border-collapse:collapse;
-width:100%;
-margin-bottom:30px;
-}}
-
-th,td{{
-border:1px solid #ccc;
-padding:8px;
-text-align:left;
-}}
-
-th{{
-background:#222;
-color:white;
-}}
-
-.card{{
-background:white;
-padding:20px;
-margin-bottom:20px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,.15);
-}}
-
-img{{
-width:100%;
-max-width:900px;
-}}
-
-</style>
-
-</head>
-
-<body>
-
-<h1>AI Trading Bot Backtest Report</h1>
-
-<div class="card">
-
-<h2>Performance Report</h2>
-
-<table>
-"""
-
-    for k, v in stats.items():
-        html += f"<tr><td>{k}</td><td>{v}</td></tr>"
-
-    html += """
-</table>
-
-</div>
-
-<div class="card">
-
-<h2>Trade Analytics</h2>
-
-<table>
-"""
-
-    for k, v in analytics.items():
-        html += f"<tr><td>{k}</td><td>{v}</td></tr>"
-
-    html += """
-</table>
-
-</div>
-
-<div class="card">
-
-<h2>Drawdown Report</h2>
-
-<table>
-"""
-
-    for k, v in drawdown.items():
-        html += f"<tr><td>{k}</td><td>{v}</td></tr>"
-
-    html += """
-</table>
-
-</div>
-
-<div class="card">
-
-<h2>Equity Curve</h2>
-
-<img src="equity_curve.png">
-
-</div>
-
-<div class="card">
-
-<h2>Last 20 Trades</h2>
-"""
-
-    html += trades_df.tail(20).to_html(index=False)
-
-    html += """
-
-</div>
-
-</body>
-
-</html>
-
-"""
-
-    with open(
-        "reports/backtest_report.html",
-        "w",
+    # Copy CSS
+    css_destination.write_text(
+        css_source.read_text(encoding="utf-8"),
         encoding="utf-8"
-    ) as f:
+    )
 
-        f.write(html)
+    # Read Template
+    html = template_path.read_text(
+        encoding="utf-8"
+    )
+
+    # -------------------------------------
+    # KPI Values
+    # -------------------------------------
+
+    final_balance = stats.get("Final Balance", 0)
+
+    win_rate = f'{stats.get("Win Rate",0)} %'
+
+    profit_factor = stats.get("Profit Factor",0)
+
+    drawdown_percent = drawdown.get(
+        "Maximum Drawdown (%)",
+        0
+    )
+
+    # -------------------------------------
+    # Tables
+    # -------------------------------------
+
+    performance_table = (
+        "<table>"
+    )
+
+    for key, value in stats.items():
+
+        performance_table += f"""
+<tr>
+<td>{key}</td>
+<td>{value}</td>
+</tr>
+"""
+
+    performance_table += "</table>"
+
+    analytics_table = "<table>"
+
+    for key, value in analytics.items():
+
+        analytics_table += f"""
+<tr>
+<td>{key}</td>
+<td>{value}</td>
+</tr>
+"""
+
+    analytics_table += "</table>"
+
+    drawdown_table = "<table>"
+
+    for key, value in drawdown.items():
+
+        drawdown_table += f"""
+<tr>
+<td>{key}</td>
+<td>{value}</td>
+</tr>
+"""
+
+    drawdown_table += "</table>"
+
+    recent_trades = trades_df.tail(20).to_html(
+        index=False,
+        classes="trade-table"
+    )
+
+    # -------------------------------------
+    # Replace Placeholders
+    # -------------------------------------
+
+    html = html.replace(
+        "{{generated_time}}",
+        datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    )
+
+    html = html.replace(
+        "{{win_rate}}",
+        win_rate
+    )
+
+    html = html.replace(
+        "{{profit_factor}}",
+        str(profit_factor)
+    )
+
+    html = html.replace(
+        "{{drawdown}}",
+        f"{drawdown_percent}%"
+    )
+
+    html = html.replace(
+        "{{performance_table}}",
+        performance_table
+    )
+
+    html = html.replace(
+        "{{analytics_table}}",
+        analytics_table
+    )
+
+    html = html.replace(
+        "{{drawdown_table}}",
+        drawdown_table
+    )
+
+    html = html.replace(
+        "{{recent_trades}}",
+        recent_trades
+    )
+
+    # CSS path for report folder
+    html = html.replace(
+        "../assets/style.css",
+        "style.css"
+    )
+
+    html = html.replace(
+        "{{final_balance}}",
+        f"${final_balance}"
+    )
+
+    # -------------------------------------
+    # Save Report
+    # -------------------------------------
+
+    report_file = reports_path / "backtest_report.html"
+
+    report_file.write_text(
+        html,
+        encoding="utf-8"
+    )
+
+    print()
+    print("✅ HTML Report Generated")
+    print(report_file)
