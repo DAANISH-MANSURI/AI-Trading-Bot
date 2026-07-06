@@ -2,12 +2,23 @@ from backtesting.models import TradeResult
 from core.enums import Signal, TradeStatus, ExitReason
 
 
-def simulate_trade(df, entry_index, signal, sl, tp):
+def simulate_trade(
+    df,
+    entry_index,
+    signal,
+    entry_price,
+    sl,
+    tp
+):
+    """
+    Trade Simulator V2
+
+    Entry comes from Trade Engine.
+    """
 
     entry_candle = df.iloc[entry_index]
 
     entry_time = entry_candle["time"]
-    entry_price = entry_candle["close"]
 
     # =====================================
     # Risk & Reward
@@ -16,7 +27,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
     risk_points = abs(entry_price - sl)
     reward_points = abs(tp - entry_price)
 
-    if risk_points == 0:
+    if risk_points <= 0:
         return None
 
     rr = round(reward_points / risk_points, 2)
@@ -42,9 +53,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
         if signal == Signal.BUY:
 
-            # -----------------------------
             # Stop Loss
-            # -----------------------------
 
             if low <= sl:
 
@@ -84,9 +93,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 )
 
-            # -----------------------------
             # Take Profit
-            # -----------------------------
 
             if high >= tp:
 
@@ -132,9 +139,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
         elif signal == Signal.SELL:
 
-            # -----------------------------
             # Stop Loss
-            # -----------------------------
 
             if high >= sl:
 
@@ -174,9 +179,7 @@ def simulate_trade(df, entry_index, signal, sl, tp):
 
                 )
 
-            # -----------------------------
             # Take Profit
-            # -----------------------------
 
             if low <= tp:
 

@@ -1,4 +1,4 @@
-from candle_patterns import (
+from strategy.candle_patterns import (
     bullish_engulfing,
     bearish_engulfing,
     pin_bar

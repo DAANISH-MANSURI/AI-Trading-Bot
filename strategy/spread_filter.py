@@ -2,7 +2,7 @@ import MetaTrader5 as mt5
 
 from config import SYMBOL, MAX_SPREAD
 
-from broker_manager import (
+from mt5.symbol_info import (
     get_symbol_info,
     get_point
 )

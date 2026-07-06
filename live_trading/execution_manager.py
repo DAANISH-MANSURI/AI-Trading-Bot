@@ -1,9 +1,9 @@
 import time
 import MetaTrader5 as mt5
 
-from trade_executor import buy, sell
-from close_position import close_position
-from retcode_manager import get_retcode_message
+from live_trading.trade_executor import buy, sell
+from live_trading.close_position import close_position
+from mt5.retcode_manager import get_retcode_message
 
 
 # ==========================================
@@ -108,3 +108,57 @@ def execute_close(retries=3):
     print("❌ Close Position Failed")
 
     return None
+# ==========================================
+# MODIFY POSITION
+# ==========================================
+
+def modify_position(sl=None, tp=None):
+
+    from live_trading.position_manager import get_position
+
+    position = get_position()
+
+    if position is None:
+
+        print("❌ No Open Position")
+
+        return None
+
+    # Existing values
+    if sl is None:
+        sl = position.sl
+
+    if tp is None:
+        tp = position.tp
+
+    request = {
+
+        "action": mt5.TRADE_ACTION_SLTP,
+
+        "symbol": position.symbol,
+
+        "position": position.ticket,
+
+        "sl": sl,
+
+        "tp": tp
+
+    }
+
+    result = mt5.order_send(request)
+
+    if result is None:
+
+        print("❌ Modify Failed")
+
+        return None
+
+    if result.retcode == mt5.TRADE_RETCODE_DONE:
+
+        print("✅ Position Modified")
+
+    else:
+
+        print(get_retcode_message(result.retcode))
+
+    return result

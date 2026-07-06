@@ -1,3 +1,5 @@
+from live_trading.main import main as run_live
+#from optimizer.optimizer import main as run_optimizer
 """
 AI Trading Bot
 
@@ -23,10 +25,11 @@ def menu():
         run_backtest()
 
     elif choice == "2":
-        print("Live Trading Module")
+        run_live()
 
     elif choice == "3":
         print("Optimizer Module")
+        # run_optimizer()
 
     else:
         print("Invalid Option")

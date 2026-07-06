@@ -1,7 +1,7 @@
 import MetaTrader5 as mt5
 
 from config import SYMBOL
-from broker_manager import (
+from mt5.symbol_info import (
     get_symbol_info,
     get_point,
     get_digits,

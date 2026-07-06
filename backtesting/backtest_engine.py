@@ -5,7 +5,7 @@ from config import SYMBOL, TIMEFRAME
 from backtesting.models import BacktestResult
 from backtesting.historical_data import get_historical_data
 
-from indicators import add_indicators
+from strategy.indicators import add_indicators
 
 
 def run_backtest(

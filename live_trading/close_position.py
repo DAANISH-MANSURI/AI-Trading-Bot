@@ -6,7 +6,7 @@ from config import (
     DEVIATION
 )
 
-from broker_manager import get_filling_mode
+from live_trading.broker_manager import get_filling_mode
 
 
 def close_position():

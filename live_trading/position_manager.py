@@ -120,3 +120,28 @@ def wait_until_position_closed(timeout=10):
             return False
 
         time.sleep(0.5)
+
+# ==========================================
+# Position Information
+# ==========================================
+
+def get_entry_price():
+
+    return get_open_price()
+
+
+def get_position_sl_tp():
+
+    position = get_position()
+
+    if position is None:
+
+        return None, None
+
+    return (
+
+        position.sl,
+
+        position.tp
+
+    )

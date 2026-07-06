@@ -6,8 +6,8 @@ from config import (
     DEVIATION
 )
 
-from broker_manager import get_filling_mode
-from retcode_manager import get_retcode_message
+from live_trading.broker_manager import get_filling_mode
+from mt5.retcode_manager import get_retcode_message
 
 
 def execute_order(order_type, lot, sl, tp):

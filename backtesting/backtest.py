@@ -37,7 +37,6 @@ from backtesting.report_engine import save_reports
 # ==========================================================
 # Main
 # ==========================================================
-
 def main():
 
     print("=" * 70)
@@ -102,7 +101,7 @@ def main():
         # ==========================================
         # Execute Trade Engine
         # ==========================================
-
+    
         trades_df = execute_trade_loop(
 
             df=df,
@@ -114,6 +113,7 @@ def main():
             risk_percent=DEFAULT_RISK
 
         )
+        
 
         if trades_df.empty:
 

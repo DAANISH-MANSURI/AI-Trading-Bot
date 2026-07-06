@@ -1,3 +1,6 @@
+from mt5.symbol_info import get_digits
+from config.trading import RISK_PERCENT
+
 import pandas as pd
 from backtesting.models import TradeResult
 
@@ -8,7 +11,6 @@ from backtesting.trade_simulator import simulate_trade
 from backtesting.position_sizer import calculate_position_size
 from core.enums import Signal
 
-
 def execute_trade_loop(
 
     df,
@@ -17,7 +19,7 @@ def execute_trade_loop(
 
     account,
 
-    risk_percent=1
+    risk_percent=RISK_PERCENT
 
 ):
 
@@ -52,6 +54,13 @@ def execute_trade_loop(
     next_available_index = 200
 
     # =====================================
+    # Pending Setup
+    # =====================================
+
+    pending_buy = None
+    pending_sell = None
+
+    # =====================================
     # Main Loop
     # =====================================
 
@@ -65,12 +74,87 @@ def execute_trade_loop(
 
         history = df.iloc[: i + 1].copy()
 
+        current = df.iloc[i]
+
+        # =====================================
+        # BUY BREAKOUT CHECK
+        # =====================================
+
+        if pending_buy is not None:
+
+            if current["high"] > pending_buy["setup_high"]:
+
+                signal = {
+
+                    "signal": Signal.BUY
+
+                }
+
+                sl = pending_buy["setup_low"]
+
+                pending_buy = None
+
+            else:
+
+                signal = {
+
+                    "signal": Signal.NO_TRADE
+
+                }
+
+        # =====================================
+        # SELL BREAKOUT CHECK
+        # =====================================
+
+        elif pending_sell is not None:
+
+            if current["low"] < pending_sell["setup_low"]:
+
+                signal = {
+
+                    "signal": Signal.SELL
+
+                }
+
+                sl = pending_sell["setup_high"]
+
+                pending_sell = None
+
+            else:
+
+                signal = {
+
+                    "signal": Signal.NO_TRADE
+
+                }
+
+
+    # =====================================
+    # NEW SETUP
+    # =====================================
+
+        else:
+
+            signal = get_signal(history)
+
+            if signal["signal"] == Signal.WAIT_BUY:
+
+                pending_buy = signal
+
+                continue
+
+            if signal["signal"] == Signal.WAIT_SELL:
+
+                pending_sell = signal
+
+                continue
+
         # =====================================
         # Strategy Signal
         # =====================================
 
         signal = get_signal(history)
-
+        
         if signal["signal"] == Signal.NO_TRADE:
 
             continue
@@ -79,7 +163,21 @@ def execute_trade_loop(
         # Stop Loss / Take Profit
         # =====================================
 
-        sl, tp = calculate_sl_tp(
+        if signal["signal"] == Signal.BUY:
+
+            risk = current["close"] - sl
+
+            tp = current["close"] + risk * 2
+
+        elif signal["signal"] == Signal.SELL:
+
+            risk = sl - current["close"]
+
+            tp = current["close"] - risk * 2
+
+        else:
+
+            sl, tp = calculate_sl_tp(
 
             history,
 
@@ -94,6 +192,7 @@ def execute_trade_loop(
         # =====================================
         # Position Size
         # =====================================
+        entry_price=history.iloc[-1]["close"]
 
         lot = calculate_position_size(
 
@@ -103,7 +202,7 @@ def execute_trade_loop(
 
             risk_percent=risk_percent,
 
-            entry_price=history.iloc[-1]["close"],
+            entry_price=entry_price,
 
             stop_loss=sl
 
@@ -119,7 +218,7 @@ def execute_trade_loop(
             i,
 
             signal["signal"],
-
+            
             sl,
 
             tp
@@ -140,9 +239,11 @@ def execute_trade_loop(
         # Extra Trade Information
         # =====================================
 
-        trade.sl = round(sl,2)
+        digits = get_digits()
 
-        trade.tp = round(tp,2)
+        trade.sl = round(sl, digits)
+
+        trade.tp = round(tp, digits)
 
         trade.lot_size = lot
 
@@ -195,5 +296,4 @@ def execute_trade_loop(
     # =====================================
     # Return Result
     # =====================================
-
     return trades_df

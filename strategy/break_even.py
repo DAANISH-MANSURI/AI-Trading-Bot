@@ -1,67 +1,96 @@
+"""
+Professional Break Even Engine
+
+Version : 2.0
+"""
+
 import MetaTrader5 as mt5
 
-from config import (
-    SYMBOL,
-    MAGIC_NUMBER,
-    BREAK_EVEN_TRIGGER
-)
+from config import SYMBOL
 
-from broker_manager import (
-    get_point,
-    get_filling_mode
-)
+from live_trading.position_manager import get_position
 
+
+# ==========================================================
+# SETTINGS
+# ==========================================================
+
+BREAK_EVEN_RR = 1.0
+
+
+# ==========================================================
+# MOVE SL TO ENTRY
+# ==========================================================
 
 def move_to_break_even():
 
-    positions = mt5.positions_get(symbol=SYMBOL)
+    position = get_position()
 
-    if positions is None or len(positions) == 0:
-        return
+    if position is None:
+        return None
 
-    position = positions[0]
+    ticket = position.ticket
 
-    tick = mt5.symbol_info_tick(SYMBOL)
+    entry = position.price_open
+
+    sl = position.sl
+
+    tp = position.tp
+
+    symbol = position.symbol
+
+    tick = mt5.symbol_info_tick(symbol)
 
     if tick is None:
-        return
+        return None
 
-    point = get_point()
-
-    trigger = BREAK_EVEN_TRIGGER * point
-
-    # BUY
+    # BUY Position
     if position.type == mt5.POSITION_TYPE_BUY:
 
         current_price = tick.bid
 
-        profit = current_price - position.price_open
+        risk = entry - sl
 
-    # SELL
+        trigger = entry + (risk * BREAK_EVEN_RR)
+
+        if current_price < trigger:
+            return None
+
+        # Already Break Even
+        if sl >= entry:
+            return None
+
+        new_sl = entry
+
+    # SELL Position
     else:
 
         current_price = tick.ask
 
-        profit = position.price_open - current_price
+        risk = sl - entry
 
-    if profit < trigger:
-        return
+        trigger = entry - (risk * BREAK_EVEN_RR)
+
+        if current_price > trigger:
+            return None
+
+        # Already Break Even
+        if sl <= entry:
+            return None
+
+        new_sl = entry
 
     request = {
 
         "action": mt5.TRADE_ACTION_SLTP,
 
-        "position": position.ticket,
+        "position": ticket,
 
-        "symbol": SYMBOL,
+        "symbol": symbol,
 
-        "sl": position.price_open,
+        "sl": new_sl,
 
-        "tp": position.tp,
-
-        "magic": MAGIC_NUMBER,
-
-        "type_filling": get_filling_mode()
+        "tp": tp
 
     }
 

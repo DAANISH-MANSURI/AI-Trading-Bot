@@ -2,25 +2,51 @@ from ta.trend import EMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 
+from config.strategy import (
+    FAST_EMA,
+    SLOW_EMA,
+    RSI_PERIOD,
+    ATR_PERIOD
+)
+
 
 def add_indicators(df):
+    """
+    Add all indicators required by strategies.
+    """
 
+    # ======================================
     # EMA
-    df["EMA5"] = EMAIndicator(df["close"], window=5).ema_indicator()
-    df["EMA9"] = EMAIndicator(df["close"], window=9).ema_indicator()
-    df["EMA13"] = EMAIndicator(df["close"], window=13).ema_indicator()
-    df["EMA21"] = EMAIndicator(df["close"], window=21).ema_indicator()
-    df["EMA200"] = EMAIndicator(df["close"], window=200).ema_indicator()
+    # ======================================
 
+    df[f"EMA{FAST_EMA}"] = EMAIndicator(
+        close=df["close"],
+        window=FAST_EMA
+    ).ema_indicator()
+
+    df[f"EMA{SLOW_EMA}"] = EMAIndicator(
+        close=df["close"],
+        window=SLOW_EMA
+    ).ema_indicator()
+
+    # ======================================
     # RSI
-    df["RSI"] = RSIIndicator(df["close"], window=14).rsi()
+    # ======================================
 
+    df["RSI"] = RSIIndicator(
+        close=df["close"],
+        window=RSI_PERIOD
+    ).rsi()
+
+    # ======================================
     # ATR
+    # ======================================
+
     atr = AverageTrueRange(
         high=df["high"],
         low=df["low"],
         close=df["close"],
-        window=14
+        window=ATR_PERIOD
     )
 
     df["ATR"] = atr.average_true_range()
