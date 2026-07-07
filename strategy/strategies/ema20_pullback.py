@@ -83,82 +83,56 @@ def bearish_setup(df):
 
 def get_signal(df):
 
+    if len(df) < 2:
+        return {
+            "strategy": "EMA20 Pullback",
+            "trend": get_trend(df),
+            "signal": Signal.NO_TRADE,
+            "confidence": 0,
+            "reason": "Not Enough Data",
+            "setup_high": None,
+            "setup_low": None,
+            "entry_price": None
+        }
+
+    previous = df.iloc[-2]
+    current = df.iloc[-1]
+
     trend = get_trend(df)
 
-    last = df.iloc[-1]
-
-    # ======================================
-    # BUY SETUP FOUND
-    # ======================================
-
-    if bullish_setup(df):
+    if bullish_setup(df.iloc[:-1]) and current["high"] > previous["high"]:
 
         return {
-
             "strategy": "EMA20 Pullback",
-
             "trend": trend,
-
-            "signal": Signal.WAIT_BUY,
-
-            "setup_high": last["high"],
-
-            "setup_low": last["low"],
-
-            "entry_price": last["close"],
-
+            "signal": Signal.BUY,
             "confidence": 90,
-
-            "reason": "Bullish EMA20 Pullback Setup"
-
+            "reason": "Bullish EMA20 Pullback Breakout",
+            "setup_high": previous["high"],
+            "setup_low": previous["low"],
+            "entry_price": current["close"]
         }
 
-    # ======================================
-    # SELL SETUP FOUND
-    # ======================================
-
-    if bearish_setup(df):
+    if bearish_setup(df.iloc[:-1]) and current["low"] < previous["low"]:
 
         return {
-
             "strategy": "EMA20 Pullback",
-
             "trend": trend,
-
-            "signal": Signal.WAIT_SELL,
-
-            "setup_high": last["high"],
-
-            "setup_low": last["low"],
-
-            "entry_price": last["close"],
-
+            "signal": Signal.SELL,
             "confidence": 90,
-
-            "reason": "Bearish EMA20 Pullback Setup"
-
+            "reason": "Bearish EMA20 Pullback Breakout",
+            "setup_high": previous["high"],
+            "setup_low": previous["low"],
+            "entry_price": current["close"]
         }
-
-    # ======================================
-    # NO TRADE
-    # ======================================
 
     return {
-
         "strategy": "EMA20 Pullback",
-
         "trend": trend,
-
         "signal": Signal.NO_TRADE,
-
-        "setup_high": None,
-
-        "setup_low": None,
-
-        "entry_price": None,
-
         "confidence": 0,
-
-        "reason": "No Valid Setup"
-
+        "reason": "No Valid Setup",
+        "setup_high": None,
+        "setup_low": None,
+        "entry_price": None
     }

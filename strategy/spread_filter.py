@@ -1,36 +1,15 @@
-import MetaTrader5 as mt5
+from config import MAX_SPREAD
 
-from config import SYMBOL, MAX_SPREAD
-
-from mt5.symbol_info import (
-    get_symbol_info,
-    get_point
-)
+from mt5.symbol_info import get_spread as get_mt5_spread
 
 
 def spread_ok():
 
-    tick = mt5.symbol_info_tick(SYMBOL)
-
-    if tick is None:
-        return False
-
-    point = get_point()
-
-    spread = (tick.ask - tick.bid) / point
+    spread = get_mt5_spread()
 
     return spread <= MAX_SPREAD
 
 
 def get_spread():
 
-    tick = mt5.symbol_info_tick(SYMBOL)
-
-    if tick is None:
-        return 0
-
-    point = get_point()
-
-    spread = (tick.ask - tick.bid) / point
-
-    return round(spread, 1)
+    return round(get_mt5_spread(), 1)

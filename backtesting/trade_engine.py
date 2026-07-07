@@ -54,13 +54,6 @@ def execute_trade_loop(
     next_available_index = 200
 
     # =====================================
-    # Pending Setup
-    # =====================================
-
-    pending_buy = None
-    pending_sell = None
-
-    # =====================================
     # Main Loop
     # =====================================
 
@@ -74,88 +67,13 @@ def execute_trade_loop(
 
         history = df.iloc[: i + 1].copy()
 
-        current = df.iloc[i]
-
-        # =====================================
-        # BUY BREAKOUT CHECK
-        # =====================================
-
-        if pending_buy is not None:
-
-            if current["high"] > pending_buy["setup_high"]:
-
-                signal = {
-
-                    "signal": Signal.BUY
-
-                }
-
-                sl = pending_buy["setup_low"]
-
-                pending_buy = None
-
-            else:
-
-                signal = {
-
-                    "signal": Signal.NO_TRADE
-
-                }
-
-        # =====================================
-        # SELL BREAKOUT CHECK
-        # =====================================
-
-        elif pending_sell is not None:
-
-            if current["low"] < pending_sell["setup_low"]:
-
-                signal = {
-
-                    "signal": Signal.SELL
-
-                }
-
-                sl = pending_sell["setup_high"]
-
-                pending_sell = None
-
-            else:
-
-                signal = {
-
-                    "signal": Signal.NO_TRADE
-
-                }
-
-
-    # =====================================
-    # NEW SETUP
-    # =====================================
-
-        else:
-
-            signal = get_signal(history)
-
-            if signal["signal"] == Signal.WAIT_BUY:
-
-                pending_buy = signal
-
-                continue
-
-            if signal["signal"] == Signal.WAIT_SELL:
-
-                pending_sell = signal
-
-                continue
-
-        # =====================================
-        # Strategy Signal
-        # =====================================
-
         signal = get_signal(history)
-        
-        if signal["signal"] == Signal.NO_TRADE:
+
+        if signal["signal"] in (
+            Signal.WAIT_BUY,
+            Signal.WAIT_SELL,
+            Signal.NO_TRADE
+        ):
 
             continue
 
@@ -163,21 +81,7 @@ def execute_trade_loop(
         # Stop Loss / Take Profit
         # =====================================
 
-        if signal["signal"] == Signal.BUY:
-
-            risk = current["close"] - sl
-
-            tp = current["close"] + risk * 2
-
-        elif signal["signal"] == Signal.SELL:
-
-            risk = sl - current["close"]
-
-            tp = current["close"] - risk * 2
-
-        else:
-
-            sl, tp = calculate_sl_tp(
+        sl, tp = calculate_sl_tp(
 
             history,
 
@@ -192,7 +96,8 @@ def execute_trade_loop(
         # =====================================
         # Position Size
         # =====================================
-        entry_price=history.iloc[-1]["close"]
+
+        entry_price = history.iloc[-1]["close"]
 
         lot = calculate_position_size(
 
@@ -218,7 +123,9 @@ def execute_trade_loop(
             i,
 
             signal["signal"],
-            
+
+            entry_price,
+
             sl,
 
             tp

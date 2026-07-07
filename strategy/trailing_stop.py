@@ -4,11 +4,12 @@ Professional ATR Trailing Stop
 Version : 2.0
 """
 
-import MetaTrader5 as mt5
+from live_trading.position_manager import (
+    get_position,
+    get_position_type
+)
 
-from config import SYMBOL
-
-from live_trading.position_manager import get_position
+from mt5.symbol_info import get_digits, get_point
 
 # ==========================================
 # SETTINGS
@@ -30,23 +31,20 @@ def trailing_stop(df):
 
     atr = df.iloc[-1]["ATR"]
 
-    ticket = position.ticket
+    position_type = get_position_type()
 
-    symbol = position.symbol
+    current_price = getattr(position, "price_current", None)
 
-    tp = position.tp
+    if current_price is None:
+        current_price = getattr(position, "price_open", None)
 
-    tick = mt5.symbol_info_tick(symbol)
-
-    if tick is None:
+    if current_price is None:
         return None
 
-    point = mt5.symbol_info(symbol).point
+    point = get_point()
 
     # BUY
-    if position.type == mt5.POSITION_TYPE_BUY:
-
-        current_price = tick.bid
+    if position_type == "BUY":
 
         new_sl = current_price - (atr * ATR_MULTIPLIER)
 
@@ -55,9 +53,7 @@ def trailing_stop(df):
             return None
 
     # SELL
-    else:
-
-        current_price = tick.ask
+    elif position_type == "SELL":
 
         new_sl = current_price + (atr * ATR_MULTIPLIER)
 
@@ -65,20 +61,10 @@ def trailing_stop(df):
         if new_sl >= position.sl - point:
             return None
 
-    request = {
+    else:
+        return None
 
-        "action": mt5.TRADE_ACTION_SLTP,
-
-        "position": ticket,
-
-        "symbol": symbol,
-
-        "sl": round(new_sl, mt5.symbol_info(symbol).digits),
-
-        "tp": tp
-
+    return {
+        "should_trail": True,
+        "new_sl": round(new_sl, get_digits())
     }
-
-    result = mt5.order_send(request)
-
-    return result
