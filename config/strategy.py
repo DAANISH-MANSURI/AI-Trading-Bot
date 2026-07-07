@@ -24,6 +24,7 @@ ATR_TRAILING_MULTIPLIER = 1.5
 # ==========================================
 
 PULLBACK_ATR_MULTIPLIER = 0.20
+PULLBACK_BODY_PERCENT = 0.50
 
 # ==========================================
 # Trend Settings
