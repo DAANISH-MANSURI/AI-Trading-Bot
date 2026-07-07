@@ -2,7 +2,7 @@
 Strategy Router
 """
 
-from strategy.strategies.ema_crossover import get_signal
+from strategy.strategies.ema20_pullback import get_signal
 
 __all__ = [
     "get_signal"

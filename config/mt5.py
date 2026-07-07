@@ -6,7 +6,7 @@ import MetaTrader5 as mt5
 
 SYMBOL = "BTCUSD"
 
-TIMEFRAME = mt5.TIMEFRAME_M5
+TIMEFRAME = mt5.TIMEFRAME_M15
 
 BARS = 250
 
