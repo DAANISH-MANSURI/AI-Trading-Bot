@@ -49,6 +49,8 @@ RISK_REWARD = 2.0
 # ==========================================
 
 USE_CANDLE_CONFIRMATION = True
+CONFIRMATION_BODY_PERCENT = 0.60
+CONFIRMATION_WICK_PERCENT = 0.20
 
 # ==========================================
 # RSI
