@@ -4,11 +4,10 @@ Professional Break Even Engine
 Version : 2.0
 """
 
-import MetaTrader5 as mt5
-
-from config import SYMBOL
-
-from live_trading.position_manager import get_position
+from live_trading.position_manager import (
+    get_position,
+    get_position_type
+)
 
 
 # ==========================================================
@@ -29,25 +28,22 @@ def move_to_break_even():
     if position is None:
         return None
 
-    ticket = position.ticket
-
     entry = position.price_open
 
     sl = position.sl
 
-    tp = position.tp
+    position_type = get_position_type()
 
-    symbol = position.symbol
+    current_price = getattr(position, "price_current", None)
 
-    tick = mt5.symbol_info_tick(symbol)
+    if current_price is None:
+        current_price = getattr(position, "price_open", None)
 
-    if tick is None:
+    if current_price is None:
         return None
 
     # BUY Position
-    if position.type == mt5.POSITION_TYPE_BUY:
-
-        current_price = tick.bid
+    if position_type == "BUY":
 
         risk = entry - sl
 
@@ -63,9 +59,7 @@ def move_to_break_even():
         new_sl = entry
 
     # SELL Position
-    else:
-
-        current_price = tick.ask
+    elif position_type == "SELL":
 
         risk = sl - entry
 
@@ -80,20 +74,10 @@ def move_to_break_even():
 
         new_sl = entry
 
-    request = {
+    else:
+        return None
 
-        "action": mt5.TRADE_ACTION_SLTP,
-
-        "position": ticket,
-
-        "symbol": symbol,
-
-        "sl": new_sl,
-
-        "tp": tp
-
+    return {
+        "should_move": True,
+        "new_sl": new_sl
     }
-
-    result = mt5.order_send(request)
-
-    return result
