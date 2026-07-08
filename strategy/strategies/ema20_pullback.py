@@ -9,12 +9,14 @@ EMA20 Pullback
     ↓
 Confirmation Candle
     ↓
-WAIT_BUY / WAIT_SELL
+Breakout
     ↓
-Trade Engine confirms breakout
+BUY / SELL
 """
 
 from core.enums import Signal, Trend
+
+from config.strategy import DEBUG_STRATEGY
 
 from strategy.shared.trend import get_trend
 
@@ -38,15 +40,12 @@ def bullish_setup(df):
     if len(df) < 2:
         return False
 
-    # Trend Filter
     if get_trend(df) != Trend.BULLISH:
         return False
 
-    # EMA20 Pullback
     if not bullish_pullback(df):
         return False
 
-    # Confirmation Candle
     if not bullish_confirmation(df):
         return False
 
@@ -62,15 +61,12 @@ def bearish_setup(df):
     if len(df) < 2:
         return False
 
-    # Trend Filter
     if get_trend(df) != Trend.BEARISH:
         return False
 
-    # EMA20 Pullback
     if not bearish_pullback(df):
         return False
 
-    # Confirmation Candle
     if not bearish_confirmation(df):
         return False
 
@@ -100,7 +96,105 @@ def get_signal(df):
 
     trend = get_trend(df)
 
-    if bullish_setup(df.iloc[:-1]) and current["high"] > previous["high"]:
+    setup_df = df.iloc[:-1]
+
+    # ======================================
+    # DEBUG VALUES
+    # ======================================
+
+    bull_pullback = bullish_pullback(setup_df)
+    bear_pullback = bearish_pullback(setup_df)
+
+    bull_confirmation = bullish_confirmation(setup_df)
+    bear_confirmation = bearish_confirmation(setup_df)
+
+    bull_setup = bullish_setup(setup_df)
+    bear_setup = bearish_setup(setup_df)
+
+    buy_breakout = current["high"] > previous["high"]
+    sell_breakout = current["low"] < previous["low"]
+
+    if DEBUG_STRATEGY:
+
+        print()
+        print("=" * 65)
+        print("EMA20 PULLBACK DEBUG")
+        print("=" * 65)
+
+        print(f"Trend                  : {trend}")
+
+        print()
+
+        print(f"Bullish Pullback       : {bull_pullback}")
+        print(f"Bearish Pullback       : {bear_pullback}")
+
+        print()
+
+        print(f"Bullish Confirmation   : {bull_confirmation}")
+        print(f"Bearish Confirmation   : {bear_confirmation}")
+
+        print()
+
+        print(f"Bullish Setup          : {bull_setup}")
+        print(f"Bearish Setup          : {bear_setup}")
+
+        print()
+
+        print(f"Previous High          : {previous['high']:.5f}")
+        print(f"Current High           : {current['high']:.5f}")
+        print(f"BUY Breakout           : {buy_breakout}")
+
+        print()
+
+        print(f"Previous Low           : {previous['low']:.5f}")
+        print(f"Current Low            : {current['low']:.5f}")
+        print(f"SELL Breakout          : {sell_breakout}")
+
+        print("=" * 65)
+
+    # ======================================
+    # DEBUG FAILURE REASON
+    # ======================================
+
+    if DEBUG_STRATEGY:
+
+        print()
+        print("CHECKLIST")
+
+        if trend != Trend.BULLISH and trend != Trend.BEARISH:
+            print("❌ Trend Filter Failed")
+
+        if not bull_pullback and not bear_pullback:
+            print("❌ Pullback Failed")
+
+        if not bull_confirmation and not bear_confirmation:
+            print("❌ Confirmation Failed")
+
+        if bull_setup and not buy_breakout:
+            print("❌ BUY Breakout Pending")
+
+        if bear_setup and not sell_breakout:
+            print("❌ SELL Breakout Pending")
+
+        if (
+            trend in (Trend.BULLISH, Trend.BEARISH)
+            and (bull_pullback or bear_pullback)
+            and (bull_confirmation or bear_confirmation)
+            and not (
+            (bull_setup and buy_breakout)
+            or
+            (bear_setup and sell_breakout)
+        )
+    ):
+            print("⚠️ Setup Valid But Breakout Not Confirmed")
+
+    print("=" * 65)
+
+    # ======================================
+    # BUY
+    # ======================================
+
+    if bull_setup and buy_breakout:
 
         return {
             "strategy": "EMA20 Pullback",
@@ -113,7 +207,11 @@ def get_signal(df):
             "entry_price": current["close"]
         }
 
-    if bearish_setup(df.iloc[:-1]) and current["low"] < previous["low"]:
+    # ======================================
+    # SELL
+    # ======================================
+
+    if bear_setup and sell_breakout:
 
         return {
             "strategy": "EMA20 Pullback",
@@ -125,6 +223,10 @@ def get_signal(df):
             "setup_low": previous["low"],
             "entry_price": current["close"]
         }
+
+    # ======================================
+    # NO TRADE
+    # ======================================
 
     return {
         "strategy": "EMA20 Pullback",

@@ -1,7 +1,13 @@
 import MetaTrader5 as mt5
 import pandas as pd
 
-from config import SYMBOL, TIMEFRAME, BARS
+from config import (
+    SYMBOL,
+    TIMEFRAME,
+    HIGHER_TIMEFRAME,
+    BARS,
+    HIGHER_TIMEFRAME_BARS
+)
 
 
 def get_market_data():
@@ -20,3 +26,4 @@ def get_market_data():
     df["time"] = pd.to_datetime(df["time"], unit="s")
 
     return df
+

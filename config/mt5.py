@@ -6,9 +6,9 @@ import MetaTrader5 as mt5
 
 SYMBOL = "BTCUSD"
 
-TIMEFRAME = mt5.TIMEFRAME_M15
 
-BARS = 250
+
+
 
 # ==========================================
 # Order
@@ -17,3 +17,19 @@ BARS = 250
 MAGIC_NUMBER = 123456
 
 DEVIATION = 20
+
+
+
+
+
+SYMBOL = "BTCUSD"
+
+# Execution Timeframe
+TIMEFRAME = mt5.TIMEFRAME_M5
+
+# Higher Timeframe Confirmation
+HIGHER_TIMEFRAME = mt5.TIMEFRAME_H1
+
+# Bars
+BARS = 250
+HIGHER_TIMEFRAME_BARS = 250

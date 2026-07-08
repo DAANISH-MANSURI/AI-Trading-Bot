@@ -86,3 +86,20 @@ BREAK_EVEN_R = 1.0
 # ==========================================
 
 USE_TRAILING_STOP = True
+
+# ==========================================
+# CONFLUENCE ENGINE (PHASE 0)
+# ==========================================
+
+CONFLUENCE_THRESHOLD = 70      # 0-100 scale for entry decision
+TREND_WEIGHT = 1.0             # weight for trend detector
+CONFIRMATION_WEIGHT = 1.0      # weight for confirmation detector
+BREAKOUT_WEIGHT = 1.0          # weight for breakout detector
+PULLBACK_WEIGHT = 1.0          # weight for pullback detector
+COUNTER_TREND_FACTOR = 0.8     # multiplier for signals opposing HTF trend
+
+# ==========================================
+# Debug
+# ==========================================
+
+DEBUG_STRATEGY = True
