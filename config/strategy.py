@@ -122,6 +122,22 @@ FVG_WEIGHT = 1.0                           # weight for FVG detector in confluen
 FVG_PULLBACK_TOLERANCE = 0.1               # tolerance for FVG touch in pullback detection (ATR multiples)
 
 # ==========================================
+# SUPPORT/RESISTANCE ZONE SETTINGS (PHASE 3)
+# ==========================================
+
+SR_ZONE_CLUSTER_ATR = 0.3           # cluster tolerance in ATR multiples (0 to disable)
+SR_ZONE_CLUSTER_PIPS = 5            # cluster tolerance in pips (0 to disable)
+SR_MAX_TOUCHES_FOR_SCORE = 10       # touch count for max score (normalization)
+SR_ZONE_EXPIRY_CANDLES = 50         # max age of zone in candles
+SR_WICK_NORMALIZER_ATR = 2.0        # ATR multiplier for wick normalization
+SR_MIN_TOUCHES = 2                  # minimum touches for valid zone
+SR_VIOLATION_ATR = 0.5              # violation size in ATR multiples (0 to disable)
+SR_VIOLATION_PIPS = 3               # violation size in pips (0 to disable)
+SR_MAX_ZONE_WIDTH_ATR = 3.0         # max zone width in ATR multiples (0 to disable)
+SR_WEIGHT = 1.0                     # weight for SR zone detector in confluence engine
+
+
+# ==========================================
 # Debug
 # ==========================================
 

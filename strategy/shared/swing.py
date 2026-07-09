@@ -145,3 +145,39 @@ def get_swing_labels(df, lookback=SWING_LOOKBACK):
             })
 
     return swings
+
+
+def get_swing_highs(df, lookback=SWING_LOOKBACK):
+    """
+    Get all swing high points in the dataframe.
+    Returns: list of dicts with keys: index, price
+    """
+
+    highs = []
+
+    for i in range(len(df)):
+        if is_swing_high(df, i, lookback):
+            highs.append({
+                "index": i,
+                "price": df.iloc[i]["high"]
+            })
+
+    return highs
+
+
+def get_swing_lows(df, lookback=SWING_LOOKBACK):
+    """
+    Get all swing low points in the dataframe.
+    Returns: list of dicts with keys: index, price
+    """
+
+    lows = []
+
+    for i in range(len(df)):
+        if is_swing_low(df, i, lookback):
+            lows.append({
+                "index": i,
+                "price": df.iloc[i]["low"]
+            })
+
+    return lows

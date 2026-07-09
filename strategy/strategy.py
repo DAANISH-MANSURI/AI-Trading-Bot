@@ -6,14 +6,16 @@ from strategy.shared.signal import Signal
 from strategy.strategies.ema20_pullback import get_signal as ema20_signal
 from strategy.strategies.ema_9_20 import get_signal as ema9_signal
 from strategy.strategies.ema_crossover import get_signal as ema_crossover_signal
-from strategy.strategies.smart_money import get_signal as smart_money_signal
+#from strategy.strategies.smart_money import get_signal as smart_money_signal
 from strategy.shared.market_structure import (
     get_market_structure_signal,
     get_bos_signal,
     get_choch_signal,
 )
 from strategy.shared.fvg import get_fvg_signal
+from strategy.shared.sr_zones import get_sr_signal
 from config.strategy import (
+
     CONFLUENCE_THRESHOLD,
     COUNTER_TREND_FACTOR,
     TREND_WEIGHT,
@@ -24,6 +26,7 @@ from config.strategy import (
     BOS_WEIGHT,
     CHOCH_WEIGHT,
     FVG_WEIGHT,
+    SR_WEIGHT,
 )
 
 from core.enums import Signal as SignalEnum
@@ -58,6 +61,7 @@ def get_signal(df):
         ("bos", get_bos_signal, BOS_WEIGHT),
         ("choch", get_choch_signal, CHOCH_WEIGHT),
         # Phase 2 detectors
+        ("sr_zones", get_sr_signal, SR_WEIGHT),
         ("fvg", get_fvg_signal, FVG_WEIGHT),
         # Phase 0 weighted detectors (if we want to use them later, we can add them here)
         # ("trend", ..., TREND_WEIGHT),
