@@ -70,7 +70,6 @@ ATR_PERIOD = 14
 
 
 USE_SWING_STOP = True
-
 USE_BROKER_STOP = True
 
 # ==========================================
@@ -136,6 +135,11 @@ SR_VIOLATION_PIPS = 3               # violation size in pips (0 to disable)
 SR_MAX_ZONE_WIDTH_ATR = 3.0         # max zone width in ATR multiples (0 to disable)
 SR_WEIGHT = 1.0                     # weight for SR zone detector in confluence engine
 
+# ==========================================
+# FIBONACCI SETTINGS (PHASE 3.5)
+# ==========================================
+
+FIBONACCI_WEIGHT = 1.0                     # weight for Fibonacci detector in confluence engine
 
 # ==========================================
 # Debug

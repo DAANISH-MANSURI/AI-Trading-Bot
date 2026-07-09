@@ -14,8 +14,8 @@ from strategy.shared.market_structure import (
 )
 from strategy.shared.fvg import get_fvg_signal
 from strategy.shared.sr_zones import get_sr_signal
+from strategy.shared.fibonacci import get_fibonacci_signal
 from config.strategy import (
-
     CONFLUENCE_THRESHOLD,
     COUNTER_TREND_FACTOR,
     TREND_WEIGHT,
@@ -27,6 +27,7 @@ from config.strategy import (
     CHOCH_WEIGHT,
     FVG_WEIGHT,
     SR_WEIGHT,
+    FIBONACCI_WEIGHT,
 )
 
 from core.enums import Signal as SignalEnum
@@ -63,6 +64,8 @@ def get_signal(df):
         # Phase 2 detectors
         ("sr_zones", get_sr_signal, SR_WEIGHT),
         ("fvg", get_fvg_signal, FVG_WEIGHT),
+        # Phase 3.5 detectors
+        ("fibonacci", get_fibonacci_signal, FIBONACCI_WEIGHT),
         # Phase 0 weighted detectors (if we want to use them later, we can add them here)
         # ("trend", ..., TREND_WEIGHT),
         # ("confirmation", ..., CONFIRMATION_WEIGHT),
