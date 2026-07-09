@@ -96,7 +96,30 @@ TREND_WEIGHT = 1.0             # weight for trend detector
 CONFIRMATION_WEIGHT = 1.0      # weight for confirmation detector
 BREAKOUT_WEIGHT = 1.0          # weight for breakout detector
 PULLBACK_WEIGHT = 1.0          # weight for pullback detector
+MARKET_STRUCTURE_WEIGHT = 1.0  # weight for market structure detector
+BOS_WEIGHT = 1.5               # weight for BOS detector
+CHOCH_WEIGHT = 1.2             # weight for CHOCH detector
 COUNTER_TREND_FACTOR = 0.8     # multiplier for signals opposing HTF trend
+
+# ==========================================
+# MARKET STRUCTURE / BOS / CHOCH SETTINGS (PHASE 1)
+# ==========================================
+
+SWING_LOOKBACK = 10                        # swing lookback period
+BOS_CONFIRMATION_CLOSE = True              # True = close-based, False = wick-based
+BOS_MIN_BREAK_PIPS = 5                     # minimum break size in pips (0 to disable)
+BOS_MIN_BREAK_ATR = 0.5                    # minimum break size in ATR multiples (0 to disable)
+
+# ==========================================
+# FVG SETTINGS (PHASE 2)
+# ==========================================
+
+FVG_MIN_GAP_PIPS = 5                       # minimum gap size in pips (0 to disable)
+FVG_MIN_GAP_ATR = 0.5                      # minimum gap size in ATR multiples (0 to disable)
+FVG_EXPIRY_CANDLES = 20                    # number of candles after which an FVG expires
+FVG_BODY_FILTER = 0.5                      # middle candle body-to-range ratio (0-1, 0 to disable)
+FVG_WEIGHT = 1.0                           # weight for FVG detector in confluence engine
+FVG_PULLBACK_TOLERANCE = 0.1               # tolerance for FVG touch in pullback detection (ATR multiples)
 
 # ==========================================
 # Debug

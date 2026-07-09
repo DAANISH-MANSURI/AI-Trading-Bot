@@ -7,6 +7,26 @@ from strategy.strategies.ema20_pullback import get_signal as ema20_signal
 from strategy.strategies.ema_9_20 import get_signal as ema9_signal
 from strategy.strategies.ema_crossover import get_signal as ema_crossover_signal
 from strategy.strategies.smart_money import get_signal as smart_money_signal
+from strategy.shared.market_structure import (
+    get_market_structure_signal,
+    get_bos_signal,
+    get_choch_signal,
+)
+from strategy.shared.fvg import get_fvg_signal
+from config.strategy import (
+    CONFLUENCE_THRESHOLD,
+    COUNTER_TREND_FACTOR,
+    TREND_WEIGHT,
+    CONFIRMATION_WEIGHT,
+    BREAKOUT_WEIGHT,
+    PULLBACK_WEIGHT,
+    MARKET_STRUCTURE_WEIGHT,
+    BOS_WEIGHT,
+    CHOCH_WEIGHT,
+    FVG_WEIGHT,
+)
+
+from core.enums import Signal as SignalEnum
 
 __all__ = [
     "get_signal"
@@ -25,21 +45,27 @@ def get_signal(df):
     Returns: dict with keys matching legacy format for compatibility
     """
     # ==========================================
-    # PHASE 0: INITIALIZE STRUCTURE
+    # DETECTOR REGISTRY WITH WEIGHTS FROM CONFIG
     # ==========================================
-    # Detector registry with weights (to be loaded from config in future)
     DETECTORS = [
-        # Current detectors - all with minimal weight until they provide Signal objects
-        ("ema20_pullback", ema20_signal, 0.1),  # weight 0.1 (legacy fallback)
-        ("ema_9_20", ema9_signal, 0.1),         # weight 0.1
-        ("ema_crossover", ema_crossover_signal, 0.1),  # weight 0.1
-        # ("smart_money", smart_money_signal, 0.1),  # weight 0.1 (will be uncommented later)
+        # Legacy strategies (kept for backward compatibility, low weight)
+        ("ema20_pullback", ema20_signal, 0.1),
+        ("ema_9_20", ema9_signal, 0.1),
+        ("ema_crossover", ema_crossover_signal, 0.1),
+        # ("smart_money", smart_money_signal, 0.1),  # optional legacy
+        # Phase 1 detectors
+        ("market_structure", get_market_structure_signal, MARKET_STRUCTURE_WEIGHT),
+        ("bos", get_bos_signal, BOS_WEIGHT),
+        ("choch", get_choch_signal, CHOCH_WEIGHT),
+        # Phase 2 detectors
+        ("fvg", get_fvg_signal, FVG_WEIGHT),
+        # Phase 0 weighted detectors (if we want to use them later, we can add them here)
+        # ("trend", ..., TREND_WEIGHT),
+        # ("confirmation", ..., CONFIRMATION_WEIGHT),
+        # ("breakout", ..., BREAKOUT_WEIGHT),
+        # ("pullback", ..., PULLBACK_WEIGHT),
     ]
 
-    # Load weights and defaults from config for Phase 0 configuration
-    # These are placeholder values that will be overridden when config is ready
-    CONFLUENCE_THRESHOLD = 70  # placeholder - will be moved to config/strategy.py
-    COUNTER_TREND_FACTOR = 0.8  # multiplier for signals opposing HTF trend
     detector_signals = []
 
     # ==========================================
@@ -47,17 +73,14 @@ def get_signal(df):
     # ==========================================
     for detector_name, detector_func, weight in DETECTORS:
         try:
-            # Call each legacy strategy to maintain compatibility
-            # It returns a legacy dict, which we convert to Signal
-            legacy_signal = detector_func(df)
-
-            # Convert to Signal format for consistency with future detectors
-            converted_signal = Signal.legacy(legacy_signal)
-            converted_signal.weight = weight
-
-            # Extract dimensions needed for direction alignment
-            signal_direction = converted_signal.direction
-            detector_signals.append((converted_signal, weight))
+            # Call detector; it should return a Signal object
+            signal = detector_func(df)
+            # Ensure we have a Signal (legacy conversion not needed for new detectors)
+            if not isinstance(signal, Signal):
+                # If it's a legacy dict, convert
+                signal = Signal.legacy(signal)
+            signal.weight = weight
+            detector_signals.append(signal)
 
         except Exception as e:
             # If a detector fails, continue with remaining detectors
@@ -70,44 +93,75 @@ def get_signal(df):
     buy_weight = 0.0
     sell_weight = 0.0
 
-    for signal, weight in detector_signals:
+    for signal in detector_signals:
         if signal.direction == "BUY":
-            buy_weight += weight
+            buy_weight += signal.weight
         elif signal.direction == "SELL":
-            sell_weight += weight
+            sell_weight += signal.weight
 
     # ==========================================
     # THRESHOLD AND FINAL DECISION
     # ==========================================
-    # Calculate total score (simple sum of weights for now - will use scored signals later)
-    total_score = buy_weight + sell_weight
+    # Calculate total score (sum of weighted scores)
+    total_score = 0.0
+    total_weight = 0.0
+    for signal in detector_signals:
+        total_score += signal.score * signal.weight
+        total_weight += signal.weight
 
-    # Determine final direction
+    # Avoid division by zero
+    if total_weight > 0:
+        average_score = total_score / total_weight
+    else:
+        average_score = 0.0
+
+    # Determine final direction based on weighted alignment
     if buy_weight >= sell_weight and buy_weight > 0:
         final_direction = "BUY"
-        final_confidence = min(100, int(buy_weight * 100))  # simple scaling
+        # Confidence could be weighted average of confidence of BUY signals
+        # For simplicity, we use proportion of buy weight
+        final_confidence = min(100, int((buy_weight / (buy_weight + sell_weight)) * 100)) if (buy_weight + sell_weight) > 0 else 0
     elif sell_weight > buy_weight and sell_weight > 0:
         final_direction = "SELL"
-        final_confidence = min(100, int(sell_weight * 100))
+        final_confidence = min(100, int((sell_weight / (buy_weight + sell_weight)) * 100)) if (buy_weight + sell_weight) > 0 else 0
     else:
-        final_direction = "NO_TRADE"
+        final_direction = "NEUTRAL"
         final_confidence = 0
 
-    # Reset final_score for now (placeholder - 0-100 scale)
-    final_score = 0 if final_direction == "NO_TRADE" else 70  # placeholder threshold met
+    # Apply threshold
+    if average_score >= CONFLUENCE_THRESHOLD and final_direction != "NEUTRAL":
+        # Trade signal
+        # Build reason chain from all signals that contributed to direction
+        reason_parts = []
+        for signal in detector_signals:
+            if (final_direction == "BUY" and signal.direction == "BUY") or \
+               (final_direction == "SELL" and signal.direction == "SELL"):
+                reason_parts.append(f"{signal.detector}: {signal.reason}")
+        reason = " | ".join(reason_parts) if reason_parts else f"{final_direction} signal"
 
-    # ==========================================
-    # FORMAT OUTPUT TO MATCH LEGACY INTERFACE
-    # ==========================================
-    result = {
-        "strategy": "Confluence Engine",
-        "trend": final_direction,
-        "signal": SignalEnum(final_direction),
-        "confidence": final_confidence,
-        "reason": f"Phase 0 placeholder - Direction: {final_direction}, Score: {final_score}",
-        "setup_high": None,
-        "setup_low": None,
-        "entry_price": None
-    }
+        # For compatibility, we need to provide some legacy fields; we'll set them to None or default
+        result = {
+            "strategy": "Confluence Engine",
+            "trend": final_direction,
+            "signal": SignalEnum(final_direction),
+            "confidence": final_confidence,
+            "reason": reason,
+            "setup_high": None,  # could be derived from meta later
+            "setup_low": None,
+            "entry_price": None,
+        }
+    else:
+        # No trade
+        reason = f"No trade: score {average_score:.1f} < threshold {CONFLUENCE_THRESHOLD} or direction neutral"
+        result = {
+            "strategy": "Confluence Engine",
+            "trend": "NEUTRAL",
+            "signal": SignalEnum.NO_TRADE,
+            "confidence": 0,
+            "reason": reason,
+            "setup_high": None,
+            "setup_low": None,
+            "entry_price": None,
+        }
 
     return result

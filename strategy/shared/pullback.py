@@ -6,9 +6,11 @@ import pandas as pd
 
 from config.strategy import (
     PULLBACK_ATR_MULTIPLIER,
-    PULLBACK_BODY_PERCENT
+    PULLBACK_BODY_PERCENT,
+    FVG_PULLBACK_TOLERANCE
 )
 from strategy.shared.helpers import within_tolerance
+from strategy.shared.fvg import get_active_fvgs  # Import for FVG integration
 
 _REQUIRED_COLUMNS = ("open", "high", "low", "close", "EMA20", "ATR")
 
@@ -17,7 +19,6 @@ def _validate_dataframe(df):
     """
     Validate that the input dataframe contains the required columns.
     """
-
     if df is None:
         raise ValueError("DataFrame is required.")
 
@@ -92,7 +93,6 @@ def bullish_pullback(
     prev = df.iloc[-2]
 
     ema20 = last["EMA20"]
-
     atr = last["ATR"]
 
     if pd.isna(atr) or atr <= 0:
@@ -100,17 +100,39 @@ def bullish_pullback(
 
     tolerance = atr * atr_multiplier
 
-    touch = within_tolerance(
-
+    # Existing EMA20 touch condition
+    touch_ema = within_tolerance(
         last["low"],
-
         ema20,
-
         tolerance
-
     )
 
-    if not touch:
+    # New FVG touch condition: check for active bullish FVGs
+    try:
+        active_fvgs = get_active_fvgs(df)
+        bullish_fvgs = [f for f in active_fvgs if f['type'] == 'bullish']
+        touch_fvg = False
+        for fvg in bullish_fvgs:
+            # Check if price is within FVG gap with tolerance
+            atr = last["ATR"] if "ATR" in last and not pd.isna(last["ATR"]) else 0.001
+            tolerance = atr * FVG_PULLBACK_TOLERANCE
+
+            # Extended gap boundaries with tolerance
+            extended_low = fvg['gap_low'] - tolerance
+            extended_high = fvg['gap_high'] + tolerance
+
+            # Check if candle overlaps with extended FVG
+            if last["high"] >= extended_low and last["low"] <= extended_high:
+                touch_fvg = True
+                break
+    except Exception:
+        # If FVG detection fails, fall back to EMA20 only
+        touch_fvg = False
+
+    # Combined touch condition: EMA20 OR FVG
+    touch_condition = touch_ema or touch_fvg
+
+    if not touch_condition:
         return False
 
     if prev["close"] <= prev["EMA20"]:
@@ -139,7 +161,6 @@ def bearish_pullback(
     prev = df.iloc[-2]
 
     ema20 = last["EMA20"]
-
     atr = last["ATR"]
 
     if pd.isna(atr) or atr <= 0:
@@ -147,17 +168,39 @@ def bearish_pullback(
 
     tolerance = atr * atr_multiplier
 
-    touch = within_tolerance(
-
+    # Existing EMA20 touch condition
+    touch_ema = within_tolerance(
         last["high"],
-
         ema20,
-
         tolerance
-
     )
 
-    if not touch:
+    # New FVG touch condition: check for active bearish FVGs
+    try:
+        active_fvgs = get_active_fvgs(df)
+        bearish_fvgs = [f for f in active_fvgs if f['type'] == 'bearish']
+        touch_fvg = False
+        for fvg in bearish_fvgs:
+            # Check if price is within FVG gap with tolerance
+            atr = last["ATR"] if "ATR" in last and not pd.isna(last["ATR"]) else 0.001
+            tolerance = atr * FVG_PULLBACK_TOLERANCE
+
+            # Extended gap boundaries with tolerance
+            extended_low = fvg['gap_low'] - tolerance
+            extended_high = fvg['gap_high'] + tolerance
+
+            # Check if candle overlaps with extended FVG
+            if last["high"] >= extended_low and last["low"] <= extended_high:
+                touch_fvg = True
+                break
+    except Exception:
+        # If FVG detection fails, fall back to EMA20 only
+        touch_fvg = False
+
+    # Combined touch condition: EMA20 OR FVG
+    touch_condition = touch_ema or touch_fvg
+
+    if not touch_condition:
         return False
 
     if prev["close"] >= prev["EMA20"]:
