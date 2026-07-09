@@ -15,6 +15,8 @@ from strategy.shared.market_structure import (
 from strategy.shared.fvg import get_fvg_signal
 from strategy.shared.sr_zones import get_sr_signal
 from strategy.shared.fibonacci import get_fibonacci_signal
+from strategy.session_filter import trading_session
+from strategy.spread_filter import spread_ok
 from config.strategy import (
     CONFLUENCE_THRESHOLD,
     COUNTER_TREND_FACTOR,
@@ -29,7 +31,6 @@ from config.strategy import (
     SR_WEIGHT,
     FIBONACCI_WEIGHT,
 )
-
 from core.enums import Signal as SignalEnum
 
 __all__ = [
@@ -48,6 +49,20 @@ def get_signal(df):
 
     Returns: dict with keys matching legacy format for compatibility
     """
+    # === SESSION AND SPREAD FILTERS ===
+    if not trading_session() or not spread_ok():
+        reason = "No trade: outside trading session or spread too wide"
+        return {
+            "strategy": "Confluence Engine",
+            "trend": "NEUTRAL",
+            "signal": SignalEnum.NO_TRADE,
+            "confidence": 0,
+            "reason": reason,
+            "setup_high": None,
+            "setup_low": None,
+            "entry_price": None,
+        }
+
     # ==========================================
     # DETECTOR REGISTRY WITH WEIGHTS FROM CONFIG
     # ==========================================
@@ -170,5 +185,14 @@ def get_signal(df):
             "setup_low": None,
             "entry_price": None,
         }
-
+    # Final safety gate: session and spread check
+    if final_direction in ("BUY", "SELL"):
+        if not trading_session():
+            result["trend"] = "NEUTRAL"
+            result["signal"] = SignalEnum.NO_TRADE
+            result["reason"] = "Blocked: outside trading session"
+        elif not spread_ok():
+            result["trend"] = "NEUTRAL"
+            result["signal"] = SignalEnum.NO_TRADE
+            result["reason"] = "Blocked: spread too wide"
     return result
