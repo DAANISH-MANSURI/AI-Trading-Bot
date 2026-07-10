@@ -98,7 +98,7 @@ PULLBACK_WEIGHT = 1.0          # weight for pullback detector
 MARKET_STRUCTURE_WEIGHT = 1.0  # weight for market structure detector
 BOS_WEIGHT = 1.5               # weight for BOS detector
 CHOCH_WEIGHT = 1.2             # weight for CHOCH detector
-COUNTER_TREND_FACTOR = 0.8     # multiplier for signals opposing HTF trend
+COUNTER_TREND_FACTOR = 0.8     # multiplier for signals opposing HTf trend
 
 # ==========================================
 # MARKET STRUCTURE / BOS / CHOCH SETTINGS (PHASE 1)
@@ -116,7 +116,7 @@ BOS_MIN_BREAK_ATR = 0.5                    # minimum break size in ATR multiples
 FVG_MIN_GAP_PIPS = 5                       # minimum gap size in pips (0 to disable)
 FVG_MIN_GAP_ATR = 0.5                      # minimum gap size in ATR multiples (0 to disable)
 FVG_EXPIRY_CANDLES = 20                    # number of candles after which an FVG expires
-FVG_BODY_FILTER = 0.5                      # middle candle body-to-range ratio (0-1, 0 to disable)
+FVG_BODY_FILTER = 0.5                      # middle cation body-to-range ratio (0-1, 0 to disable)
 FVG_WEIGHT = 1.0                           # weight for FVG detector in confluence engine
 FVG_PULLBACK_TOLERANCE = 0.1               # tolerance for FVG touch in pullback detection (ATR multiples)
 
@@ -140,6 +140,14 @@ SR_WEIGHT = 1.0                     # weight for SR zone detector in confluence 
 # ==========================================
 
 FIBONACCI_WEIGHT = 1.0                     # weight for Fibonacci detector in confluence engine
+
+# ==========================================
+# RISK MANAGEMENT PARAMETERS (PHASE 6)
+# ==========================================
+
+RISK_PER_TRADE = 2.0                     # Percent of account to risk per trade (e.g., 2.0 for 2%)
+FALLBACK_SL_PIPS = 20                    # Fallback stop loss in pips when ATR is unavailable
+MIN_RISK_REWARD = 1.0                    # Minimum acceptable risk-reward ratio
 
 # ==========================================
 # Debug
