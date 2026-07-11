@@ -115,81 +115,49 @@ def get_signal(df):
     sell_breakout = current["low"] < previous["low"]
 
     if DEBUG_STRATEGY:
+        pass
+        # print()
+        # print("=" * 65)
+        # print("EMA20 PULLBACK DEBUG")
+        # print("=" * 65)
 
-        print()
-        print("=" * 65)
-        print("EMA20 PULLBACK DEBUG")
-        print("=" * 65)
+        # print(f"Trend                  : {trend}")
 
-        print(f"Trend                  : {trend}")
+        # print()
 
-        print()
+        # print(f"Bullish Pullback       : {bull_pullback}")
+        # print(f"Bearish Pullback       : {bear_pullback}")
 
-        print(f"Bullish Pullback       : {bull_pullback}")
-        print(f"Bearish Pullback       : {bear_pullback}")
+        # print()
 
-        print()
+        # print(f"Bullish Confirmation   : {bull_confirmation}")
+        # print(f"Bearish Confirmation   : {bear_confirmation}")
 
-        print(f"Bullish Confirmation   : {bull_confirmation}")
-        print(f"Bearish Confirmation   : {bear_confirmation}")
+        # print()
 
-        print()
+        # print(f"Bullish Setup          : {bull_setup}")
+        # print(f"Bearish Setup          : {bear_setup}")
 
-        print(f"Bullish Setup          : {bull_setup}")
-        print(f"Bearish Setup          : {bear_setup}")
+        # print()
 
-        print()
+        # print(f"Previous High          : {previous['high']:.5f}")
+        # print(f"Current High           : {current['high']:.5f}")
+        # print(f"BUY Breakout           : {buy_breakout}")
 
-        print(f"Previous High          : {previous['high']:.5f}")
-        print(f"Current High           : {current['high']:.5f}")
-        print(f"BUY Breakout           : {buy_breakout}")
+        # print()
 
-        print()
+        # print(f"Previous Low           : {previous['low']:.5f}")
+        # print(f"Current Low            : {current['low']:.5f}")
+        # print(f"SELL Breakout          : {sell_breakout}")
 
-        print(f"Previous Low           : {previous['low']:.5f}")
-        print(f"Current Low            : {current['low']:.5f}")
-        print(f"SELL Breakout          : {sell_breakout}")
-
-        print("=" * 65)
+        # print("=" * 65)
 
     # ======================================
     # DEBUG FAILURE REASON
     # ======================================
 
     if DEBUG_STRATEGY:
-
-        print()
-        print("CHECKLIST")
-
-        if trend != Trend.BULLISH and trend != Trend.BEARISH:
-            print("❌ Trend Filter Failed")
-
-        if not bull_pullback and not bear_pullback:
-            print("❌ Pullback Failed")
-
-        if not bull_confirmation and not bear_confirmation:
-            print("❌ Confirmation Failed")
-
-        if bull_setup and not buy_breakout:
-            print("❌ BUY Breakout Pending")
-
-        if bear_setup and not sell_breakout:
-            print("❌ SELL Breakout Pending")
-
-        if (
-            trend in (Trend.BULLISH, Trend.BEARISH)
-            and (bull_pullback or bear_pullback)
-            and (bull_confirmation or bear_confirmation)
-            and not (
-            (bull_setup and buy_breakout)
-            or
-            (bear_setup and sell_breakout)
-        )
-    ):
-            print("⚠️ Setup Valid But Breakout Not Confirmed")
-
-    print("=" * 65)
-
+        pass
     # ======================================
     # BUY
     # ======================================

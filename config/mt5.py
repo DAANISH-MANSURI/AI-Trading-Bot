@@ -6,10 +6,6 @@ import MetaTrader5 as mt5
 
 SYMBOL = "BTCUSD"
 
-
-
-
-
 # ==========================================
 # Order
 # ==========================================
@@ -18,11 +14,6 @@ MAGIC_NUMBER = 123456
 
 DEVIATION = 20
 
-
-
-
-
-SYMBOL = "BTCUSD"
 
 # Execution Timeframe
 TIMEFRAME = mt5.TIMEFRAME_M5

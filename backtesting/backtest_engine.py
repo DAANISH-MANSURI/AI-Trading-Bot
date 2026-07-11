@@ -1,3 +1,5 @@
+# DEPRECATED: This file is an incomplete placeholder. Use backtest.py as the actual backtest entry point instead.
+
 import MetaTrader5 as mt5
 
 from config import SYMBOL, TIMEFRAME
