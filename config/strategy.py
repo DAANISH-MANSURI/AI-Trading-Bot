@@ -30,6 +30,22 @@ PULLBACK_BODY_PERCENT = 0.50
 PULLBACK_ATR_TOLERANCE = 0.2
 
 # ==========================================
+# REJECTION CANDLE SETTINGS
+# ==========================================
+
+PIN_BAR_WICK_RATIO = 2.0
+PIN_BAR_CLOSE_ZONE = 0.33
+PIN_BAR_MAX_BODY_RATIO = 0.35
+DOJI_MAX_BODY_RATIO = 0.10
+MAX_REJECTION_WAIT_CANDLES = 5
+
+# ==========================================
+# BREAKOUT SETTINGS
+# ==========================================
+
+BREAKOUT_WAIT_CANDLES = 5   # number of candles to wait for breakout after rejection before returning to pullback wait
+
+# ==========================================
 # Trend Settings
 # ==========================================
 

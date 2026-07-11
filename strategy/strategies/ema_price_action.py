@@ -13,7 +13,7 @@ from typing import Dict, Optional
 import pandas as pd
 from strategy.shared.htf_bias import get_htf_bias
 from strategy.shared.chop_filter import is_trending
-from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE, PIN_BAR_WICK_RATIO, PIN_BAR_CLOSE_ZONE, PIN_BAR_MAX_BODY_RATIO, DOJI_MAX_BODY_RATIO, MAX_REJECTION_WAIT_CANDLES
+from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE, PIN_BAR_WICK_RATIO, PIN_BAR_CLOSE_ZONE, PIN_BAR_MAX_BODY_RATIO, DOJI_MAX_BODY_RATIO, MAX_REJECTION_WAIT_CANDLES, BREAKOUT_WAIT_CANDLES
 from strategy.candle_patterns import bullish_pin_bar, bearish_pin_bar, bullish_engulfing, bearish_engulfing, doji
 
 
@@ -38,6 +38,7 @@ def _get_state(symbol: str) -> dict:
             "rejection_high": None,
             "rejection_low": None,
             "rejection_wait": 0,
+            "breakout_wait": 0,
         }
     return _state[symbol]
 
