@@ -2,6 +2,8 @@
 Strategy Configuration
 """
 
+import MetaTrader5 as mt5
+
 # ==========================================
 # EMA SETTINGS
 # ==========================================
@@ -140,6 +142,13 @@ SR_WEIGHT = 1.0                     # weight for SR zone detector in confluence 
 # ==========================================
 
 FIBONACCI_WEIGHT = 1.0                     # weight for Fibonacci detector in confluence engine
+
+# ==========================================
+# HIGHER TIMEFRAME BIAS SETTINGS
+# ==========================================
+
+HTF_TIMEFRAME = mt5.TIMEFRAME_H4       # higher‑timeframe for bias (e.g., H4)
+HTF_EMA_PERIOD = 200                   # EMA period for higher‑timeframe bias
 
 # ==========================================
 # RISK MANAGEMENT PARAMETERS (PHASE 6)
