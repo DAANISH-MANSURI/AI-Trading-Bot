@@ -13,7 +13,8 @@ from typing import Dict, Optional
 import pandas as pd
 from strategy.shared.htf_bias import get_htf_bias
 from strategy.shared.chop_filter import is_trending
-from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE
+from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE, PIN_BAR_WICK_RATIO, PIN_BAR_CLOSE_ZONE, PIN_BAR_MAX_BODY_RATIO, DOJI_MAX_BODY_RATIO, MAX_REJECTION_WAIT_CANDLES
+from strategy.candle_patterns import bullish_pin_bar, bearish_pin_bar, bullish_engulfing, bearish_engulfing, doji
 
 
 # States for the state machine
@@ -30,7 +31,14 @@ _state: Dict[str, dict] = {}  # symbol -> {"state": str, "direction": Optional[s
 def _get_state(symbol: str) -> dict:
     """Get or initialize state for a symbol."""
     if symbol not in _state:
-        _state[symbol] = {"state": STATE_IDLE, "direction": None}
+        _state[symbol] = {
+            "state": STATE_IDLE,
+            "direction": None,
+            "rejection_detected": False,
+            "rejection_high": None,
+            "rejection_low": None,
+            "rejection_wait": 0,
+        }
     return _state[symbol]
 
 
@@ -69,6 +77,33 @@ def detect_crossover(df) -> Optional[str]:
         return "BEARISH_CROSS"
 
     return None
+
+
+def is_rejection_candle(df: pd.DataFrame, direction: str) -> bool:
+    """
+    Determine if the last candle is a rejection candle for the given direction.
+    Uses configured via strategy.candle_patterns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with OHLC data.
+    direction : str
+        Either "BULLISH" or "BEARISH" indicating the expected rejection direction.
+
+    Returns
+    -------
+    bool
+        True if the candle qualifies as a rejection candle.
+    """
+    if df is None or len(df) < 1:
+        return False
+    if direction == "BULLISH":
+        return bullish_pin_bar(df) or bullish_engulfing(df) or doji(df)
+    elif direction == "BEARISH":
+        return bearish_pin_bar(df) or bearish_engulfing(df) or doji(df)
+    else:
+        return False
 
 
 def get_signal(df):
@@ -209,8 +244,43 @@ def get_signal(df):
                 reason = "WAITING_FOR_PULLBACK: waiting for pullback signal"
                 confidence = 50  # placeholder
 
-    # For other states, we stay and return NO_TRADE (to be implemented in later steps)
+    elif current_state == STATE_WAITING_FOR_REJECTION:
+        # Increment wait counter if we haven't detected a rejection yet
+        if not state_info["rejection_detected"]:
+            state_info["rejection_wait"] += 1
+        # Check for opposite crossover (invalidate)
+        if crossover:
+            if (crossover == "BEARISH_CROSS" and direction == "BULLISH") or \
+               (crossover == "BULLISH_CROSS" and direction == "BEARISH"):
+                new_state = STATE_IDLE
+                new_direction = None
+                reason = "Invalidating opposite crossover while waiting for rejection"
+                confidence = 0
+        # Check timeout
+        if state_info["rejection_wait"] >= MAX_REJECTION_WAIT_CANDLES and not state_info["rejection_detected"]:
+            # Timed out without rejection, go back to waiting for pullback (same direction)
+            new_state = STATE_WAITING_FOR_PULLBACK
+            reason = "Rejection wait exceeded, returning to pullback wait"
+            confidence = 40  # placeholder
+        # Check for rejection candle
+        if not state_info["rejection_detected"] and is_rejection_candle(df, direction):
+            state_info["rejection_detected"] = True
+            state_info["rejection_high"] = float(df.iloc[-1]["high"])
+            state_info["rejection_low"] = float(df.iloc[-1]["low"])
+            reason = "Rejection candle detected"
+            confidence = 70  # placeholder
+            # Stay in WAITING_FOR_REJECTION (await breakout)
+            new_state = STATE_WAITING_FOR_REJECTION
+        # Determine reason and confidence if still waiting and not timed out
+        if new_state == STATE_WAITING_FOR_REJECTION:
+            if not state_info["rejection_detected"]:
+                reason = f"Waiting for rejection candle ({state_info['rejection_wait']}/{MAX_REJECTION_WAIT_CANDLES})"
+                confidence = 50  # placeholder
+            else:
+                reason = "Rejection detected, awaiting breakout"
+                confidence = 70  # placeholder
     else:
+        # For other states (WAITING_FOR_BREAKOUT, IN_TRADE), we stay and return NO_TRADE (to be implemented in later steps)
         reason = f"State {current_state}: awaiting further signals"
         confidence = 30  # placeholder
 
