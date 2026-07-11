@@ -268,22 +268,88 @@ def get_signal(df):
             state_info["rejection_detected"] = True
             state_info["rejection_high"] = float(df.iloc[-1]["high"])
             state_info["rejection_low"] = float(df.iloc[-1]["low"])
-            reason = "Rejection candle detected"
-            confidence = 70  # placeholder
-            # Stay in WAITING_FOR_REJECTION (await breakout)
-            new_state = STATE_WAITING_FOR_REJECTION
+            # Transition to WAITING_FOR_BREAKOUT (await breakout)
+            new_state = STATE_WAITING_FOR_BREAKOUT
         # Determine reason and confidence if still waiting and not timed out
         if new_state == STATE_WAITING_FOR_REJECTION:
-            if not state_info["rejection_detected"]:
-                reason = f"Waiting for rejection candle ({state_info['rejection_wait']}/{MAX_REJECTION_WAIT_CANDLES})"
-                confidence = 50  # placeholder
-            else:
-                reason = "Rejection detected, awaiting breakout"
-                confidence = 70  # placeholder
+            reason = f"Waiting for rejection candle ({state_info['rejection_wait']}/{MAX_REJECTION_WAIT_CANDLES})"
+            confidence = 50  # placeholder
+        elif new_state == STATE_WAITING_FOR_BREAKOUT:
+            reason = "Rejection detected, awaiting breakout"
+            confidence = 70  # placeholder
+    elif current_state == STATE_WAITING_FOR_BREAKOUT:
+        # Invalidation check first: opposite EMA crossover -> STATE_IDLE
+        if crossover:
+            if (crossover == "BEARISH_CROSS" and direction == "BULLISH") or \
+               (crossover == "BULLISH_CROSS" and direction == "BEARISH"):
+                new_state = STATE_IDLE
+                new_direction = None
+                reason = "Invalidating opposite crossover while waiting for breakout"
+                confidence = 0
+        else:
+            # No opposite crossover, check for breakout
+            if direction == "BULLISH":
+                if df.iloc[-1]["close"] > state_info["rejection_high"]:
+                    # Bullish breakout confirmed
+                    new_state = STATE_IN_TRADE
+                    trade_signal = Signal.BUY
+                    entry_price = state_info["rejection_high"]
+                    reason = "Bullish breakout confirmed"
+                    confidence = 80
+                else:
+                    # No breakout yet, increment breakout_wait and check timeout
+                    state_info["breakout_wait"] += 1
+                    if state_info["breakout_wait"] >= BREAKOUT_WAIT_CANDLES:
+                        # Timeout: return to waiting for rejection (same direction)
+                        new_state = STATE_WAITING_FOR_REJECTION
+                        # Reset rejection-related flags for a fresh start
+                        state_info["rejection_detected"] = False
+                        state_info["rejection_wait"] = 0
+                        state_info["rejection_high"] = None
+                        state_info["rejection_low"] = None
+                        state_info["breakout_wait"] = 0
+                        reason = "Breakout waited too long, returning to rejection wait"
+                        confidence = 40  # placeholder
+                    else:
+                        # Still waiting for breakout
+                        reason = f"Waiting for breakout ({state_info['breakout_wait']}/{BREAKOUT_WAIT_CANDLES})"
+                        confidence = 50  # placeholder
+            elif direction == "BEARISH":
+                if df.iloc[-1]["close"] < state_info["rejection_low"]:
+                    # Bearish breakout confirmed
+                    new_state = STATE_IN_TRADE
+                    trade_signal = Signal.SELL
+                    entry_price = state_info["rejection_low"]
+                    reason = "Bearish breakout confirmed"
+                    confidence = 80
+                else:
+                    # No breakout yet, increment breakout_wait and check timeout
+                    state_info["breakout_wait"] += 1
+                    if state_info["breakout_wait"] >= BREAKOUT_WAIT_CANDLES:
+                        # Timeout: return to waiting for rejection (same direction)
+                        new_state = STATE_WAITING_FOR_REJECTION
+                        # Reset rejection-related flags for a fresh start
+                        state_info["rejection_detected"] = False
+                        state_info["rejection_wait"] = 0
+                        state_info["rejection_high"] = None
+                        state_info["rejection_low"] = None
+                        state_info["breakout_wait"] = 0
+                        reason = "Breakout waited too long, returning to rejection wait"
+                        confidence = 40  # placeholder
+                    else:
+                        # Still waiting for breakout
+                        reason = f"Waiting for breakout ({state_info['breakout_wait']}/{BREAKOUT_WAIT_CANDLES})"
+                        confidence = 50  # placeholder
+    elif current_state == STATE_IN_TRADE:
+        # Placeholder: we are in a trade, do not signal again until exit logic is built
+        reason = "Already in trade"
+        confidence = 0
+        new_state = current_state  # stay in IN_TRADE
+        new_direction = direction  # keep direction
     else:
-        # For other states (WAITING_FOR_BREAKOUT, IN_TRADE), we stay and return NO_TRADE (to be implemented in later steps)
-        reason = f"State {current_state}: awaiting further signals"
-        confidence = 30  # placeholder
+        # Should not happen, but if so, return NO_TRADE
+        reason = f"Unknown state {current_state}"
+        confidence = 0
 
     # Update state
     state_info["state"] = new_state
