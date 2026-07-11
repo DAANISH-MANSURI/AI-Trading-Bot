@@ -10,9 +10,10 @@ WAITING_FOR_PULLBACK -> IDLE on an invalidating opposite crossover.
 from core.enums import Signal, Trend
 from typing import Dict, Optional
 
+import pandas as pd
 from strategy.shared.htf_bias import get_htf_bias
 from strategy.shared.chop_filter import is_trending
-from config.strategy import HTF_TIMEFRAME
+from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE
 
 
 # States for the state machine
@@ -179,8 +180,34 @@ def get_signal(df):
             reason = "Invalidating bullish crossover while waiting for bearish pullback"
             confidence = 0
         else:
-            reason = "WAITING_FOR_PULLBACK: waiting for pullback signal"
-            confidence = 50  # placeholder
+            # Check for pullback into EMA band
+            # Ensure ATR and EMA columns exist
+            if all(col in df.columns for col in ["ATR", "EMA9", "EMA20"]):
+                atr = df.iloc[-1]["ATR"]
+                if not pd.isna(atr) and atr > 0:
+                    ema9 = df.iloc[-1]["EMA9"]
+                    ema20 = df.iloc[-1]["EMA20"]
+                    high = df.iloc[-1]["high"]
+                    low = df.iloc[-1]["low"]
+                    higher = max(ema9, ema20)
+                    lower = min(ema9, ema20)
+                    tolerance = PULLBACK_ATR_TOLERANCE * atr
+                    if direction == "BULLISH":
+                        # price low should be between lower - tolerance and higher
+                        if low >= lower - tolerance and low <= higher:
+                            new_state = STATE_WAITING_FOR_REJECTION
+                            reason = "Pullback detected - price entered EMA band (bullish)"
+                            confidence = 60  # placeholder
+                    elif direction == "BEARISH":
+                        # price high should be between lower and higher + tolerance
+                        if high >= lower and high <= higher + tolerance:
+                            new_state = STATE_WAITING_FOR_REJECTION
+                            reason = "Pullback detected - price entered EMA band (bearish)"
+                            confidence = 60  # placeholder
+            # If no pullback detected, stay in WAITING_FOR_PULLBACK
+            if new_state == STATE_WAITING_FOR_PULLBACK:
+                reason = "WAITING_FOR_PULLBACK: waiting for pullback signal"
+                confidence = 50  # placeholder
 
     # For other states, we stay and return NO_TRADE (to be implemented in later steps)
     else:
