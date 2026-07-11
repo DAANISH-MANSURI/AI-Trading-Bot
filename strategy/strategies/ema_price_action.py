@@ -15,6 +15,7 @@ from strategy.shared.htf_bias import get_htf_bias
 from strategy.shared.chop_filter import is_trending
 from config.strategy import HTF_TIMEFRAME, PULLBACK_ATR_TOLERANCE, PIN_BAR_WICK_RATIO, PIN_BAR_CLOSE_ZONE, PIN_BAR_MAX_BODY_RATIO, DOJI_MAX_BODY_RATIO, MAX_REJECTION_WAIT_CANDLES, BREAKOUT_WAIT_CANDLES
 from strategy.candle_patterns import bullish_pin_bar, bearish_pin_bar, bullish_engulfing, bearish_engulfing, doji
+from strategy.stop_loss import calculate_sl_tp
 
 
 # States for the state machine
@@ -39,6 +40,8 @@ def _get_state(symbol: str) -> dict:
             "rejection_low": None,
             "rejection_wait": 0,
             "breakout_wait": 0,
+            "sl": None,
+            "tp": None
         }
     return _state[symbol]
 
@@ -290,12 +293,39 @@ def get_signal(df):
             # No opposite crossover, check for breakout
             if direction == "BULLISH":
                 if df.iloc[-1]["close"] > state_info["rejection_high"]:
-                    # Bullish breakout confirmed
-                    new_state = STATE_IN_TRADE
-                    trade_signal = Signal.BUY
-                    entry_price = state_info["rejection_high"]
-                    reason = "Bullish breakout confirmed"
-                    confidence = 80
+                    # Bullish breakout confirmed - check SL/TP
+                    sl, tp = calculate_sl_tp(df, Signal.BUY)
+                    if sl is not None and tp is not None:
+                        # Both valid, enter trade
+                        new_state = STATE_IN_TRADE
+                        trade_signal = Signal.BUY
+                        entry_price = state_info["rejection_high"]
+                        # Store in state for logging
+                        state_info["sl"] = sl
+                        state_info["tp"] = tp
+                        # For the return dict, we'll set setup_high and setup_low to the higher and lower of SL and TP
+                        setup_high = max(sl, tp)
+                        setup_low = min(sl, tp)
+                        reason = "Bullish breakout confirmed"
+                        confidence = 80
+                    else:
+                        # SL/TP calculation failed, treat as no breakout (but we already know price is beyond rejection level)
+                        state_info["breakout_wait"] += 1
+                        if state_info["breakout_wait"] >= BREAKOUT_WAIT_CANDLES:
+                            # Timeout: return to waiting for rejection (same direction)
+                            new_state = STATE_WAITING_FOR_REJECTION
+                            # Reset rejection-related flags for a fresh start
+                            state_info["rejection_detected"] = False
+                            state_info["rejection_wait"] = 0
+                            state_info["rejection_high"] = None
+                            state_info["rejection_low"] = None
+                            state_info["breakout_wait"] = 0
+                            reason = "Breakout confirmed but SL/TP calculation failed, waiting too long"
+                            confidence = 40  # placeholder
+                        else:
+                            # Still waiting for breakout with valid SL/TP
+                            reason = f"Breakout detected but SL/TP calculation failed ({state_info['breakout_wait']}/{BREAKOUT_WAIT_CANDLES})"
+                            confidence = 50  # placeholder
                 else:
                     # No breakout yet, increment breakout_wait and check timeout
                     state_info["breakout_wait"] += 1
@@ -316,12 +346,39 @@ def get_signal(df):
                         confidence = 50  # placeholder
             elif direction == "BEARISH":
                 if df.iloc[-1]["close"] < state_info["rejection_low"]:
-                    # Bearish breakout confirmed
-                    new_state = STATE_IN_TRADE
-                    trade_signal = Signal.SELL
-                    entry_price = state_info["rejection_low"]
-                    reason = "Bearish breakout confirmed"
-                    confidence = 80
+                    # Bearish breakout confirmed - check SL/TP
+                    sl, tp = calculate_sl_tp(df, Signal.SELL)
+                    if sl is not None and tp is not None:
+                        # Both valid, enter trade
+                        new_state = STATE_IN_TRADE
+                        trade_signal = Signal.SELL
+                        entry_price = state_info["rejection_low"]
+                        # Store in state for logging
+                        state_info["sl"] = sl
+                        state_info["tp"] = tp
+                        # For the return dict, we'll set setup_high and setup_low to the higher and lower of SL and TP
+                        setup_high = max(sl, tp)
+                        setup_low = min(sl, tp)
+                        reason = "Bearish breakout confirmed"
+                        confidence = 80
+                    else:
+                        # SL/TP calculation failed, treat as no breakout (but we already know price is beyond rejection level)
+                        state_info["breakout_wait"] += 1
+                        if state_info["breakout_wait"] >= BREAKOUT_WAIT_CANDLES:
+                            # Timeout: return to waiting for rejection (same direction)
+                            new_state = STATE_WAITING_FOR_REJECTION
+                            # Reset rejection-related flags for a fresh start
+                            state_info["rejection_detected"] = False
+                            state_info["rejection_wait"] = 0
+                            state_info["rejection_high"] = None
+                            state_info["rejection_low"] = None
+                            state_info["breakout_wait"] = 0
+                            reason = "Breakout confirmed but SL/TP calculation failed, waiting too long"
+                            confidence = 40  # placeholder
+                        else:
+                            # Still waiting for breakout with valid SL/TP
+                            reason = f"Breakout detected but SL/TP calculation failed ({state_info['breakout_wait']}/{BREAKOUT_WAIT_CANDLES})"
+                            confidence = 50  # placeholder
                 else:
                     # No breakout yet, increment breakout_wait and check timeout
                     state_info["breakout_wait"] += 1
@@ -341,11 +398,39 @@ def get_signal(df):
                         reason = f"Waiting for breakout ({state_info['breakout_wait']}/{BREAKOUT_WAIT_CANDLES})"
                         confidence = 50  # placeholder
     elif current_state == STATE_IN_TRADE:
-        # Placeholder: we are in a trade, do not signal again until exit logic is built
-        reason = "Already in trade"
-        confidence = 0
-        new_state = current_state  # stay in IN_TRADE
-        new_direction = direction  # keep direction
+        # Check for exit condition: EMA cross-back
+        exit_signal = None
+        if crossover:
+            if direction == "BULLISH" and crossover == "BEARISH_CROSS":
+                exit_signal = Signal.EXIT_BUY
+            elif direction == "BEARISH" and crossover == "BULLISH_CROSS":
+                exit_signal = Signal.EXIT_SELL
+        if exit_signal is not None:
+            # Exit the trade
+            new_state = STATE_IDLE
+            new_direction = None
+            trade_signal = exit_signal
+            reason = "EMA cross-back exit"
+            confidence = 0
+            # Reset state fields
+            state_info["direction"] = None
+            state_info["rejection_detected"] = False
+            state_info["rejection_high"] = None
+            state_info["rejection_low"] = None
+            state_info["rejection_wait"] = 0
+            state_info["breakout_wait"] = 0
+            state_info["sl"] = None
+            state_info["tp"] = None
+            # Clear setup_high and setup_low in the return dict
+            setup_high = None
+            setup_low = None
+        else:
+            # No exit signal, stay in trade
+            reason = "Already in trade"
+            confidence = 0
+            new_state = current_state  # stay in IN_TRADE
+            new_direction = direction  # keep direction
+            # Keep setup_high and setup_low as they are (from entry)
     else:
         # Should not happen, but if so, return NO_TRADE
         reason = f"Unknown state {current_state}"
