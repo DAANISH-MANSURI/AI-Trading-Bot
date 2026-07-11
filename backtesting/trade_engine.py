@@ -11,6 +11,8 @@ from backtesting.trade_simulator import simulate_trade
 from backtesting.position_sizer import calculate_position_size
 from core.enums import Signal
 
+WINDOW_SIZE = 300
+
 def execute_trade_loop(
 
     df,
@@ -24,6 +26,7 @@ def execute_trade_loop(
 ):
 
     """
+
     Execute complete trade loop.
 
     Parameters
@@ -39,6 +42,7 @@ def execute_trade_loop(
     Returns
     -------
     pandas.DataFrame
+
     """
 
     # =====================================
@@ -65,7 +69,10 @@ def execute_trade_loop(
 
             continue
 
-        history = df.iloc[: i + 1].copy()
+        start = max(0, i - WINDOW_SIZE + 1)
+        history = df.iloc[start : i + 1].copy()
+        # Set symbol attribute for strategies that need it
+        history.attrs["symbol"] = symbol
 
         signal = get_signal(history)
 
