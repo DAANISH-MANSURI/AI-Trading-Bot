@@ -4,7 +4,7 @@ from config.trading import RISK_PERCENT
 import pandas as pd
 from backtesting.models import TradeResult
 
-from strategy.strategy import get_signal
+from strategy.strategies.ema_price_action import get_signal
 from strategy.stop_loss import calculate_sl_tp
 
 from backtesting.trade_simulator import simulate_trade
