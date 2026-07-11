@@ -151,6 +151,13 @@ HTF_TIMEFRAME = mt5.TIMEFRAME_H4       # higher‑timeframe for bias (e.g., H4)
 HTF_EMA_PERIOD = 200                   # EMA period for higher‑timeframe bias
 
 # ==========================================
+# CHOPPINESS FILTER SETTINGS (ADX)
+# ==========================================
+
+ADX_PERIOD = 14
+ADX_MIN_THRESHOLD = 20                 # ADX below this indicates choppy/ranging market
+
+# ==========================================
 # RISK MANAGEMENT PARAMETERS (PHASE 6)
 # ==========================================
 
