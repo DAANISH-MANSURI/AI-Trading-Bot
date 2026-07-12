@@ -4,12 +4,10 @@ from config.trading import RISK_PERCENT
 import pandas as pd
 from backtesting.models import TradeResult
 
-from strategy.strategies.ema_price_action import get_signal
-from strategy.stop_loss import calculate_sl_tp
-
-from backtesting.trade_simulator import simulate_trade
+from strategy.strategies.ema_price_action import get_signal, reset_state
 from backtesting.position_sizer import calculate_position_size
 from core.enums import Signal
+from backtesting.trade_simulator_ema_pa import simulate_trade_ema_pa
 
 WINDOW_SIZE = 300
 
@@ -88,16 +86,14 @@ def execute_trade_loop(
         # Stop Loss / Take Profit
         # =====================================
 
-        sl, tp = calculate_sl_tp(
-
-            history,
-
-            signal["signal"]
-
-        )
-
+        # Extract SL from signal (already calculated by strategy)
+        if signal["signal"] == Signal.BUY:
+            sl = signal["setup_low"]
+        else:  # Signal.SELL
+            sl = signal["setup_high"]
         if sl is None:
-
+            continue
+        if abs(sl - entry_price) < 1e-9:  # zero-risk guard
             continue
 
         # =====================================
@@ -123,24 +119,16 @@ def execute_trade_loop(
         # Trade Simulation
         # =====================================
 
-        trade = simulate_trade(
-
+        trade = simulate_trade_ema_pa(
             df,
-
             i,
-
             signal["signal"],
-
             entry_price,
-
-            sl,
-
-            tp
-
+            sl
         )
 
         if trade is None:
-
+            reset_state(symbol) #reset symbol state
             continue
 
         # =====================================
@@ -174,6 +162,8 @@ def execute_trade_loop(
         # =====================================
 
         trades.append(trade)
+        # Reset strategy state for this symbol since the trade has been processed
+        reset_state(symbol)
 
     # =====================================
     # Convert To DataFrame
