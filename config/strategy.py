@@ -21,6 +21,9 @@ ATR_SL_MULTIPLIER = 2.0
 
 ATR_TRAILING_MULTIPLIER = 1.5
 
+TRAIL_TRIGGER_R = 1.0   # profit in R-multiples before trailing SL starts
+
+SWING_MAX_ATR_DISTANCE = 5.0   # max swing point distance in ATR multiples to consider it valid
 # ==========================================
 # Pullback Settings
 # ==========================================

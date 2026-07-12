@@ -4,6 +4,7 @@ Strategy Stop Loss Engine
 Calculates stop loss based on market structure with fallback to ATR-based and fixed pip methods.
 """
 
+import pandas as pd
 from core.enums import Signal
 from strategy.shared.market_structure import get_swing_lows, get_swing_highs
 from mt5.symbol_info import (
@@ -18,7 +19,7 @@ from config.strategy import (
 )
 
 
-# Note: We assume ATR_SL_MULTIPLIER and FALLBACK_SL_PIPS are added to config/strategy.py
+# Note: We assume ATR_SL_MULTIPLIER, FALLBACK_SL_PIPS, and SWING_MAX_ATR_DISTANCE are added to config/strategy.py
 # If not available, we'll use defaults
 try:
     from config.strategy import ATR_SL_MULTIPLIER
@@ -29,6 +30,11 @@ try:
     from config.strategy import FALLBACK_SL_PIPS
 except ImportError:
     FALLBACK_SL_PIPS = 20  # Default 20 pips
+
+try:
+    from config.strategy import SWING_MAX_ATR_DISTANCE
+except ImportError:
+    SWING_MAX_ATR_DISTANCE = 5.0  # Default max swing distance in ATR multiples
 
 LOOKBACK = 10  # For backward compatibility with existing swing functions if needed
 
@@ -73,11 +79,16 @@ def buy_stop_loss(df):
     swing_lows = get_swing_lows(df)
     if swing_lows and len(swing_lows) > 0:
         recent_swing_low = float(swing_lows[-1]['price'])
-        # Structure-based SL
-        sl_structure = recent_swing_low - (atr * ATR_SL_MULTIPLIER)
-        # Ensure SL is below entry
-        if sl_structure < entry:
-            return sl_structure
+        # Check if swing point is too far from entry
+        if atr > 0 and abs(entry - recent_swing_low) > SWING_MAX_ATR_DISTANCE * atr:
+            # Swing too far, ignore this swing point and fall through to ATR-based SL
+            pass
+        else:
+            # Structure-based SL
+            sl_structure = recent_swing_low - (atr * ATR_SL_MULTIPLIER)
+            # Ensure SL is below entry
+            if sl_structure < entry:
+                return sl_structure
 
     # Fallback 2: ATR-based SL (if no swing point or structure-based invalid)
     if atr > 0:
@@ -105,11 +116,16 @@ def sell_stop_loss(df):
     swing_highs = get_swing_highs(df)
     if swing_highs and len(swing_highs) > 0:
         recent_swing_high = float(swing_highs[-1]['price'])
-        # Structure-based SL
-        sl_structure = recent_swing_high + (atr * ATR_SL_MULTIPLIER)
-        # Ensure SL is above entry
-        if sl_structure > entry:
-            return sl_structure
+        # Check if swing point is too far from entry
+        if atr > 0 and abs(entry - recent_swing_high) > SWING_MAX_ATR_DISTANCE * atr:
+            # Swing too far, ignore this swing point and fall through to ATR-based SL
+            pass
+        else:
+            # Structure-based SL
+            sl_structure = recent_swing_high + (atr * ATR_SL_MULTIPLIER)
+            # Ensure SL is above entry
+            if sl_structure > entry:
+                return sl_structure
 
     # Fallback 2: ATR-based SL (if no swing point or structure-based invalid)
     if atr > 0:
