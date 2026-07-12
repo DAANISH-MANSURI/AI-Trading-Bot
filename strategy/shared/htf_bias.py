@@ -111,3 +111,27 @@ def get_htf_bias(symbol: str, htf_timeframe: int) -> str:
     _htf_cache[cache_key] = {"ts": latest_time, "bias": bias}
 
     return bias
+
+
+def get_htf_bias_from_df(htf_df, current_time, htf_ema_period=None):
+    """
+    Backtest-safe HTF bias — computes bias using only HTF candles that
+    closed at or before current_time (prevents look-ahead bias).
+    No MT5 calls — operates on a pre-loaded dataframe.
+    """
+    if htf_ema_period is None:
+        htf_ema_period = HTF_EMA_PERIOD
+
+    valid_df = htf_df[htf_df["time"] <= current_time]
+    if len(valid_df) < htf_ema_period:
+        return "UNKNOWN"
+
+    ema_indicator = EMAIndicator(close=valid_df["close"], window=htf_ema_period)
+    latest_ema = ema_indicator.ema_indicator().iloc[-1]
+    latest_close = valid_df["close"].iloc[-1]
+
+    if latest_close > latest_ema:
+        return "BULLISH"
+    elif latest_close < latest_ema:
+        return "BEARISH"
+    return "UNKNOWN"
