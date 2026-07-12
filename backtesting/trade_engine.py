@@ -19,7 +19,9 @@ def execute_trade_loop(
 
     account,
 
-    risk_percent=RISK_PERCENT
+    risk_percent=RISK_PERCENT,
+
+    htf_df=None
 
 ):
 
@@ -36,6 +38,9 @@ def execute_trade_loop(
     account : AccountSimulator
 
     risk_percent : float
+
+    htf_df : pandas.DataFrame, optional
+        Higher timeframe data for bias calculation
 
     Returns
     -------
@@ -71,6 +76,10 @@ def execute_trade_loop(
         history = df.iloc[start : i + 1].copy()
         # Set symbol attribute for strategies that need it
         history.attrs["symbol"] = symbol
+        # Set HTF data and current time for bias calculation
+        if htf_df is not None:
+            history.attrs["htf_df"] = htf_df
+            history.attrs["current_time"] = history.iloc[-1]["time"]
 
         signal = get_signal(history)
 
@@ -93,6 +102,7 @@ def execute_trade_loop(
             sl = signal["setup_high"]
         if sl is None:
             continue
+        entry_price = history.iloc[-1]["close"]
         if abs(sl - entry_price) < 1e-9:  # zero-risk guard
             continue
 
@@ -100,7 +110,6 @@ def execute_trade_loop(
         # Position Size
         # =====================================
 
-        entry_price = history.iloc[-1]["close"]
 
         lot = calculate_position_size(
 
@@ -145,7 +154,7 @@ def execute_trade_loop(
 
         trade.sl = round(sl, digits)
 
-        trade.tp = round(tp, digits)
+        trade.tp = None  # strategy has no fixed TP, exits on EMA cross-back / trailing SL
 
         trade.lot_size = lot
 

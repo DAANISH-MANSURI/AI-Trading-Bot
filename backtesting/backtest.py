@@ -24,6 +24,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # ==========================================================
 
 from config import SYMBOL, TIMEFRAME
+from config.strategy import HTF_TIMEFRAME
 
 from backtesting.historical_data import get_historical_data
 from strategy.indicators import add_indicators
@@ -99,9 +100,26 @@ def main():
         logger.info("Indicators Calculated")
 
         # ==========================================
+        # HTF Data Preload (for higher timeframe bias)
+        # ==========================================
+
+        htf_df = get_historical_data(
+            symbol=SYMBOL,
+            timeframe=HTF_TIMEFRAME,
+            candles=300
+        )
+
+        if htf_df is None:
+            print("❌ Failed To Load HTF Historical Data")
+            return
+
+        print(f"✅ Loaded {len(htf_df)} HTF Candles")
+        logger.info(f"Loaded {len(htf_df)} HTF Candles")
+
+        # ==========================================
         # Execute Trade Engine
         # ==========================================
-    
+
         trades_df = execute_trade_loop(
 
             df=df,
@@ -110,7 +128,9 @@ def main():
 
             account=account,
 
-            risk_percent=DEFAULT_RISK
+            risk_percent=DEFAULT_RISK,
+
+            htf_df=htf_df
 
         )
         
